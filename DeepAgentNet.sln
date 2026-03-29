@@ -1,0 +1,27 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepAgentNet", "src\DeepAgentNet\DeepAgentNet.csproj", "{496B53FE-0FA0-4654-8A80-8B532E8DF31F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepAgentSample", "samples\DeepAgentSample\DeepAgentSample.csproj", "{7C87ED7A-FA10-4444-ACAC-5930490B1003}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{ADA181A5-732E-4442-B1FE-6DF2C1D790A6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{496B53FE-0FA0-4654-8A80-8B532E8DF31F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{496B53FE-0FA0-4654-8A80-8B532E8DF31F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{496B53FE-0FA0-4654-8A80-8B532E8DF31F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{496B53FE-0FA0-4654-8A80-8B532E8DF31F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{7C87ED7A-FA10-4444-ACAC-5930490B1003}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{7C87ED7A-FA10-4444-ACAC-5930490B1003}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{7C87ED7A-FA10-4444-ACAC-5930490B1003}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{7C87ED7A-FA10-4444-ACAC-5930490B1003}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{7C87ED7A-FA10-4444-ACAC-5930490B1003} = {ADA181A5-732E-4442-B1FE-6DF2C1D790A6}
+	EndGlobalSection
+EndGlobal
