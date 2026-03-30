@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace DeepAgentNet.TodoListProviders
+namespace DeepAgentNet.TodoLists.Internal
 {
     internal static class TodoListChatClientExtensions
     {

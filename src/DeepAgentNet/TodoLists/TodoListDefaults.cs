@@ -1,8 +1,8 @@
-namespace DeepAgentNet.TodoListProviders
+namespace DeepAgentNet.TodoLists
 {
-    public static class TodoListProviderDefaults
+    public static class TodoListDefaults
     {
-        public const string ToolName = "{ToolName}";
+        public const string ToolName = "write_todos";
 
         public const string KeyDuplicate = "duplicate";
 

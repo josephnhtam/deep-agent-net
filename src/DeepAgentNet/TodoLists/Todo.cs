@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace DeepAgentNet.TodoListProviders
+namespace DeepAgentNet.TodoLists
 {
     public record Todo(
         [Description("Content of the todo item")]

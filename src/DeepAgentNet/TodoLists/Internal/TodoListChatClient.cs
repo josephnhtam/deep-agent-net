@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace DeepAgentNet.TodoListProviders
+namespace DeepAgentNet.TodoLists.Internal
 {
     internal class TodoListChatClient : DelegatingChatClient
     {
@@ -17,7 +17,7 @@ namespace DeepAgentNet.TodoListProviders
 
             List<FunctionCallContent> todosWrites = response.Messages.SelectMany(m => m.Contents)
                 .OfType<FunctionCallContent>()
-                .Where(c => c.Name == TodoListProviderDefaults.ToolName)
+                .Where(c => c.Name == TodoListDefaults.ToolName)
                 .ToList();
 
             if (todosWrites.Count <= 1)
@@ -26,7 +26,7 @@ namespace DeepAgentNet.TodoListProviders
             foreach (FunctionCallContent todosWrite in todosWrites)
             {
                 todosWrite.Arguments ??= new Dictionary<string, object?>();
-                todosWrite.Arguments[TodoListProviderDefaults.KeyDuplicate] = true;
+                todosWrite.Arguments[TodoListDefaults.KeyDuplicate] = true;
             }
 
             return response;
@@ -38,7 +38,7 @@ namespace DeepAgentNet.TodoListProviders
 
             await foreach (ChatResponseUpdate update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
             {
-                if (update.Contents.OfType<FunctionCallContent>().Any(c => c.Name == TodoListProviderDefaults.ToolName) != true)
+                if (update.Contents.OfType<FunctionCallContent>().Any(c => c.Name == TodoListDefaults.ToolName) != true)
                 {
                     todosWriteUpdates.Add(update);
                     continue;
@@ -50,12 +50,12 @@ namespace DeepAgentNet.TodoListProviders
             if (todosWriteUpdates.Count > 1)
             {
                 var todosWrites = todosWriteUpdates.SelectMany(u => u.Contents).OfType<FunctionCallContent>()
-                    .Where(c => c.Name == TodoListProviderDefaults.ToolName);
+                    .Where(c => c.Name == TodoListDefaults.ToolName);
 
                 foreach (FunctionCallContent todosWrite in todosWrites)
                 {
                     todosWrite.Arguments ??= new Dictionary<string, object?>();
-                    todosWrite.Arguments[TodoListProviderDefaults.KeyDuplicate] = true;
+                    todosWrite.Arguments[TodoListDefaults.KeyDuplicate] = true;
                 }
             }
 

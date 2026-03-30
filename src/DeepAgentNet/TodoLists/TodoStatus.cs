@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace DeepAgentNet.TodoListProviders
+namespace DeepAgentNet.TodoLists
 {
     [Description("Status of the todo")]
     public enum TodoStatus
