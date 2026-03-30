@@ -124,16 +124,16 @@ namespace DeepAgentNet.SubAgents.Internal
             {
                 await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(inputs, session, cancellationToken: cancellationToken))
                 {
-                    await subAgent.Handle.ReceiveUpdateAsync(update, cancellationToken);
+                    await subAgent.Handle.ReceiveUpdateAsync(agent.Id, update, cancellationToken);
                     updates.Add(update);
                 }
 
                 response = updates.ToAgentResponse();
-                await subAgent.Handle.ReceiveResponseAsync(response, cancellationToken);
+                await subAgent.Handle.ReceiveResponseAsync(agent.Id, response, cancellationToken);
 
                 List<Task<FunctionApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
                     .OfType<FunctionApprovalRequestContent>()
-                    .Select(c => subAgent.Handle.ApproveFunctionCallAsync(c, cancellationToken))
+                    .Select(c => subAgent.Handle.ApproveFunctionCallAsync(agent.Id, c, cancellationToken))
                     .ToList();
 
                 HashSet<string> completedCallIds = response.Messages.SelectMany(m => m.Contents)
@@ -144,7 +144,8 @@ namespace DeepAgentNet.SubAgents.Internal
                 List<Task<FunctionResultContent>> callResultTasks = response.Messages.SelectMany(m => m.Contents)
                     .OfType<FunctionCallContent>()
                     .Where(c => !completedCallIds.Contains(c.CallId))
-                    .Select(async c => new FunctionResultContent(c.CallId, await subAgent.Handle.ProvideFunctionResultAsync(c, cancellationToken)))
+                    .Select(async c => new FunctionResultContent(
+                        c.CallId, await subAgent.Handle.ProvideFunctionResultAsync(agent.Id, c, cancellationToken)))
                     .ToList();
 
                 if (!approvalResultTasks.Any() && !callResultTasks.Any())
