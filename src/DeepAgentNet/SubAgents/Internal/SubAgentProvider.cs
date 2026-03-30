@@ -8,6 +8,7 @@ namespace DeepAgentNet.SubAgents.Internal
     internal class SubAgentProvider : AIContextProvider
     {
         private readonly SubAgentDefaultOptions _defaultOptions;
+        private readonly SubAgentProviderOptions? _options;
         private readonly ILoggerFactory? _loggerFactory;
         private readonly IServiceProvider? _services;
 
@@ -18,6 +19,7 @@ namespace DeepAgentNet.SubAgents.Internal
             ILoggerFactory? loggerFactory = null, IServiceProvider? services = null)
         {
             _defaultOptions = defaultOptions;
+            _options = options;
             _loggerFactory = loggerFactory;
             _services = services;
             _tools = new List<AITool>();
@@ -28,8 +30,8 @@ namespace DeepAgentNet.SubAgents.Internal
             {
                 AIFunction tool = AIFunctionFactory.Create(ExecuteSubAgentAsync, new AIFunctionFactoryOptions
                 {
-                    Name = SubAgentProviderDefaults.ToolName,
-                    Description = options?.ToolDescription?.Invoke(subAgents) ?? SubAgentProviderDefaults.GetToolDescription([]),
+                    Name = SubAgentDefaults.ToolName,
+                    Description = options?.ToolDescription?.Invoke(subAgents) ?? SubAgentDefaults.GetToolDescription([]),
                     JsonSchemaCreateOptions = JsonSchemaCreateOptions(subAgents)
                 });
 
@@ -48,6 +50,7 @@ namespace DeepAgentNet.SubAgents.Internal
 
             return new(new AIContext
             {
+                Instructions = _options?.SystemPrompt ?? SubAgentDefaults.SystemPrompt,
                 Tools = _tools
             });
         }
@@ -84,8 +87,8 @@ namespace DeepAgentNet.SubAgents.Internal
                 }
 
                 subAgents.Add(new SubAgent(
-                    Name: SubAgentProviderDefaults.GeneralPurposeAgentName,
-                    Description: options.GeneralPurposeAgent.Description ?? SubAgentProviderDefaults.GeneralPurposeAgentDescription,
+                    Name: SubAgentDefaults.GeneralPurposeAgentName,
+                    Description: options.GeneralPurposeAgent.Description ?? SubAgentDefaults.GeneralPurposeAgentDescription,
                     Handle: options.GeneralPurposeAgent.Handle,
                     Factory: options.GeneralPurposeAgent.Factory ?? GeneralPurposeAgentFactory
                 ));
