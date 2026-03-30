@@ -124,10 +124,12 @@ namespace DeepAgentNet.SubAgents.Internal
             {
                 await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(inputs, session, cancellationToken: cancellationToken))
                 {
+                    await subAgent.Handle.ReceiveUpdateAsync(update, cancellationToken);
                     updates.Add(update);
                 }
 
                 response = updates.ToAgentResponse();
+                await subAgent.Handle.ReceiveResponseAsync(response, cancellationToken);
 
                 List<Task<FunctionApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
                     .OfType<FunctionApprovalRequestContent>()
