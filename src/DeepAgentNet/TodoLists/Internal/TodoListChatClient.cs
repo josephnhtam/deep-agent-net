@@ -49,7 +49,8 @@ namespace DeepAgentNet.TodoLists.Internal
 
             if (todosWriteUpdates.Count > 1)
             {
-                var todosWrites = todosWriteUpdates.SelectMany(u => u.Contents).OfType<FunctionCallContent>()
+                IEnumerable<FunctionCallContent> todosWrites = todosWriteUpdates.SelectMany(u => u.Contents)
+                    .OfType<FunctionCallContent>()
                     .Where(c => c.Name == TodoListDefaults.ToolName);
 
                 foreach (FunctionCallContent todosWrite in todosWrites)

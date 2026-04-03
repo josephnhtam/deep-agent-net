@@ -36,7 +36,7 @@ namespace DeepAgentNet.FileSystems
             return fullPath;
         }
 
-        public ValueTask<List<FileSystemInfo>> LsInfoAsync(string path, CancellationToken cancellationToken = default)
+        public ValueTask<List<FileSystemInfo>> ListInfoAsync(string path, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(path);
             _logger?.ListingDirectoryInfo(fullPath);

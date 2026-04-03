@@ -16,11 +16,11 @@ namespace DeepAgentNet.AIAgents
             ILoggerFactory? loggerFactory = null,
             IServiceProvider? services = null)
         {
-            var deepAgentContextProviders = CreateDeepAgentContextProviders(options.Clone());
+            client = client.AsTodoListChatClient(deepAgentOptions?.TodoList);
+            List<AIContextProvider> deepAgentContextProviders = CreateDeepAgentContextProviders(options.Clone());
 
             options = options.Clone();
             options.AIContextProviders = [..options.AIContextProviders ?? [], ..deepAgentContextProviders];
-            client = client.AsTodoListChatClient(deepAgentOptions?.TodoList);
 
             ChatClientAgent agent = new ChatClientAgent(client, options, loggerFactory, services);
             return new DeepAgent(agent);
@@ -38,8 +38,6 @@ namespace DeepAgentNet.AIAgents
         private static AIContextProvider CreateSubAgentProvider(IChatClient client, ChatClientAgentOptions options,
             DeepAgentOptions? deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
         {
-            client = client.AsTodoListChatClient(deepAgentOptions?.TodoList);
-
             SubAgentDefaultOptions defaultOptions = new(
                 DefaultChatClient: client,
                 DefaultOptions: options,

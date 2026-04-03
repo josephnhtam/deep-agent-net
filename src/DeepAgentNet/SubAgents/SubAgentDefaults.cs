@@ -149,6 +149,10 @@ namespace DeepAgentNet.SubAgents
 
         public const string GeneralPurposeAgentName = "general-purpose";
 
+        public const string GeneralPurposeAgentSystemPrompt = """
+            In order to complete the objective that the user asks of you, you have access to a number of standard tools.
+            """;
+
         public const string GeneralPurposeAgentDescription = """
             General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks.
             When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you.

@@ -2,7 +2,7 @@ namespace DeepAgentNet.FileSystems.Contracts
 {
     public interface IFileSystemAccess
     {
-        ValueTask<List<FileSystemInfo>> LsInfoAsync(string path, CancellationToken cancellationToken = default);
+        ValueTask<List<FileSystemInfo>> ListInfoAsync(string path, CancellationToken cancellationToken = default);
         ValueTask<string> ReadAsync(string filePath, int offset = 0, int limit = 500, CancellationToken cancellationToken = default);
         ValueTask<FileData> ReadRawAsync(string filePath, CancellationToken cancellationToken = default);
         ValueTask<List<GrepMatch>> GrepAsync(string pattern, string? dirPath = null, string? glob = null, CancellationToken cancellationToken = default);
