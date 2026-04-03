@@ -9,6 +9,7 @@
 
     <ItemGroup>
       <PackageReference Include="Microsoft.Agents.AI" />
+      <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing" />
     </ItemGroup>
 
 </Project>
