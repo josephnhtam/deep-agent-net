@@ -51,8 +51,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 return $"Error: invoked agent of type ${subAgentType}, the only allowed types are ${string.Join(", ", _subAgentMap.Keys)}";
             }
 
-            AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken);
-            AgentSession session = await agent.CreateSessionAsync(cancellationToken);
+            AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken).ConfigureAwait(false);
+            AgentSession session = await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
             List<ChatMessage> inputs = [new(ChatRole.User, description)];
 
             List<AgentResponseUpdate> updates = new();
@@ -60,14 +60,15 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
             while (true)
             {
-                await foreach (AgentResponseUpdate update in agent.RunStreamingAsync(inputs, session, cancellationToken: cancellationToken))
+                await foreach (AgentResponseUpdate update in
+                    agent.RunStreamingAsync(inputs, session, cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
-                    await subAgent.Handle.ReceiveUpdateAsync(agent.Id, update, cancellationToken);
+                    await subAgent.Handle.ReceiveUpdateAsync(agent.Id, update, cancellationToken).ConfigureAwait(false);
                     updates.Add(update);
                 }
 
                 response = updates.ToAgentResponse();
-                await subAgent.Handle.ReceiveResponseAsync(agent.Id, response, cancellationToken);
+                await subAgent.Handle.ReceiveResponseAsync(agent.Id, response, cancellationToken).ConfigureAwait(false);
 
                 List<Task<FunctionApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
                     .OfType<FunctionApprovalRequestContent>()
@@ -83,7 +84,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     .OfType<FunctionCallContent>()
                     .Where(c => !completedCallIds.Contains(c.CallId))
                     .Select(async c => new FunctionResultContent(
-                        c.CallId, await subAgent.Handle.ProvideFunctionResultAsync(agent.Id, c, cancellationToken)))
+                        c.CallId, await subAgent.Handle.ProvideFunctionResultAsync(agent.Id, c, cancellationToken).ConfigureAwait(false)
+                    ))
                     .ToList();
 
                 if (!approvalResultTasks.Any() && !callResultTasks.Any())
@@ -92,8 +94,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 inputs.Clear();
                 updates.Clear();
 
-                IList<AIContent> approvalResults = await Task.WhenAll(approvalResultTasks);
-                IList<AIContent> callResults = await Task.WhenAll(callResultTasks);
+                IList<AIContent> approvalResults = await Task.WhenAll(approvalResultTasks).ConfigureAwait(false);
+                IList<AIContent> callResults = await Task.WhenAll(callResultTasks).ConfigureAwait(false);
                 inputs.Add(new ChatMessage(ChatRole.Tool, approvalResults.Concat(callResults).ToList()));
             }
 

@@ -13,7 +13,7 @@ namespace DeepAgentNet.TodoLists.Internal
 
         public override async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = new CancellationToken())
         {
-            ChatResponse response = await base.GetResponseAsync(messages, options, cancellationToken);
+            ChatResponse response = await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
 
             List<FunctionCallContent> todosWrites = response.Messages.SelectMany(m => m.Contents)
                 .OfType<FunctionCallContent>()
@@ -36,7 +36,8 @@ namespace DeepAgentNet.TodoLists.Internal
         {
             List<ChatResponseUpdate> todosWriteUpdates = new();
 
-            await foreach (ChatResponseUpdate update in base.GetStreamingResponseAsync(messages, options, cancellationToken))
+            await foreach (ChatResponseUpdate update in
+                base.GetStreamingResponseAsync(messages, options, cancellationToken).ConfigureAwait(false))
             {
                 if (update.Contents.OfType<FunctionCallContent>().Any(c => c.Name == TodoListDefaults.ToolName) != true)
                 {

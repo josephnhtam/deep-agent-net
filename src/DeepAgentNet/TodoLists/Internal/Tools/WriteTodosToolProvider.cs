@@ -38,7 +38,7 @@ namespace DeepAgentNet.TodoLists.Internal.Tools
 
             if (_onTodosUpdatedAsync is not null)
             {
-                await _onTodosUpdatedAsync(_agentId, todos, cancellation);
+                await _onTodosUpdatedAsync(_agentId, todos, cancellation).ConfigureAwait(false);
             }
 
             return $"Updated todo list to {JsonSerializer.Serialize(todos, AIJsonUtilities.DefaultOptions)}";
