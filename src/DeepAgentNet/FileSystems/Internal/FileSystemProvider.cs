@@ -14,7 +14,7 @@ namespace DeepAgentNet.FileSystems.Internal
             _options = options;
 
             ListInfoToolProvider listInfoToolProvider = new(options.Access, options.LsToolOptions);
-            FileReadToolProvider fileReadToolProvider = new(options.Access, options.LsToolOptions);
+            FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions);
             FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions);
             FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions);
             GlobToolProvider globToolProvider = new(options.Access, options.GlobToolOptions);

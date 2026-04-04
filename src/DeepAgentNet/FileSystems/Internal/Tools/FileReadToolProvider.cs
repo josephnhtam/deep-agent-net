@@ -53,7 +53,12 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         break;
                 }
 
-                return sb.ToString();
+                string result = sb.ToString();
+
+                if (string.IsNullOrEmpty(result) && offset == 0 && limit > 0)
+                    return "[System: This file exists but has empty contents]";
+
+                return result;
             }
             catch (Exception ex)
             {

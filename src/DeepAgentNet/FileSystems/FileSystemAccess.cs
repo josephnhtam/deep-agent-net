@@ -3,7 +3,6 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
-using System.Text.RegularExpressions;
 
 namespace DeepAgentNet.FileSystems
 {
@@ -24,7 +23,7 @@ namespace DeepAgentNet.FileSystems
 
         private string ResolveFullPath(string path)
         {
-            string fullPath = Path.GetFullPath(Path.Combine(_rootPath, path.TrimStart('/')));
+            string fullPath = Path.GetFullPath(Path.Combine(_rootPath, path.Replace('\\', '/').TrimStart('/')));
 
             if (_options.RestrictToRoot && !fullPath.StartsWith(_rootPath))
             {
@@ -45,16 +44,18 @@ namespace DeepAgentNet.FileSystems
             if (!directoryInfo.Exists)
                 return new(new List<FileSystemInfo>());
 
+            string normalizedPath = NormalizeVirtualPath(path);
+
             List<FileSystemInfo> results = [];
 
             results.AddRange(directoryInfo.EnumerateDirectories().Select(d => new FileSystemInfo(
-                Path: d.FullName + Path.DirectorySeparatorChar,
+                Path: CombineVirtualPath(normalizedPath, d.Name) + "/",
                 IsDirectory: true,
                 Size: 0,
                 ModifiedAt: d.LastWriteTime)));
 
             results.AddRange(directoryInfo.EnumerateFiles().Select(f => new FileSystemInfo(
-                Path: f.FullName,
+                Path: CombineVirtualPath(normalizedPath, f.Name),
                 IsDirectory: false,
                 Size: f.Length,
                 ModifiedAt: f.LastWriteTime)));
@@ -123,12 +124,12 @@ namespace DeepAgentNet.FileSystems
                 return [];
 
             Matcher? matcher = CreateMatcher();
-            Regex regex = CreateRegex();
+            string normalizedDirPath = NormalizeVirtualPath(dirPath ?? "/");
 
             List<GrepMatch> results = new();
 
             await Parallel.ForEachAsync(
-                directoryInfo.EnumerateFiles(glob ?? "*", SearchOption.AllDirectories),
+                directoryInfo.EnumerateFiles("*", SearchOption.AllDirectories),
                 new ParallelOptions { MaxDegreeOfParallelism = _options.GrepParallelism },
                 async (fileInfo, ct) => await SingleFileGrepAsync(fileInfo, ct).ConfigureAwait(false)
             ).ConfigureAwait(false);
@@ -141,16 +142,6 @@ namespace DeepAgentNet.FileSystems
                     return null;
 
                 return new Matcher().AddInclude(glob);
-            }
-
-            Regex CreateRegex()
-            {
-                RegexOptions regexOptions = RegexOptions.Compiled;
-
-                if (_options.NonBacktrackingGrep)
-                    regexOptions |= RegexOptions.NonBacktracking;
-
-                return new(pattern, regexOptions);
             }
 
             async ValueTask SingleFileGrepAsync(FileInfo fileInfo, CancellationToken ct)
@@ -168,17 +159,19 @@ namespace DeepAgentNet.FileSystems
                         return;
                     }
 
+                    string virtualPath = CombineVirtualPath(normalizedDirPath, relativePath);
+
                     int lineNumber = 0;
                     await foreach (string line in ReadLineAsync(fileInfo.FullName, ct).ConfigureAwait(false))
                     {
                         lineNumber++;
 
-                        if (!regex.IsMatch(line))
+                        if (!line.Contains(pattern, StringComparison.Ordinal))
                             continue;
 
                         lock (results)
                         {
-                            results.Add(new GrepMatch(relativePath, lineNumber, line));
+                            results.Add(new GrepMatch(virtualPath, lineNumber, line));
                         }
                     }
                 }
@@ -209,6 +202,8 @@ namespace DeepAgentNet.FileSystems
                 return [];
             }
 
+            string normalizedPath = NormalizeVirtualPath(path ?? "/");
+
             Matcher matcher = new Matcher().AddInclude(pattern);
             DirectoryInfoWrapper directoryInfoWrapper = new(directoryInfo);
             PatternMatchingResult result = matcher.Execute(directoryInfoWrapper);
@@ -221,11 +216,12 @@ namespace DeepAgentNet.FileSystems
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string filePath = ResolveFullPath(match.Path);
-                    FileInfo fileInfo = new(filePath);
+                    string diskPath = Path.Combine(fullPath, match.Path);
+                    FileInfo fileInfo = new(diskPath);
+                    string virtualPath = CombineVirtualPath(normalizedPath, match.Path);
 
                     fileSystemInfos.Add(new FileSystemInfo(
-                        Path: filePath,
+                        Path: virtualPath,
                         IsDirectory: false,
                         Size: fileInfo.Length,
                         ModifiedAt: fileInfo.LastWriteTime
@@ -267,6 +263,7 @@ namespace DeepAgentNet.FileSystems
             catch (Exception ex)
             {
                 _logger?.FailedToWriteFile(ex, fullPath);
+                throw;
             }
         }
 
@@ -390,6 +387,17 @@ namespace DeepAgentNet.FileSystems
                 _logger?.FailedToEnsureDirectory(ex, fullPath);
                 throw;
             }
+        }
+
+        private static string NormalizeVirtualPath(string path)
+        {
+            string normalized = path.Replace('\\', '/').TrimEnd('/');
+            return string.IsNullOrEmpty(normalized) ? "/" : normalized;
+        }
+
+        private static string CombineVirtualPath(string basePath, string relativePath)
+        {
+            return Path.Combine(basePath, relativePath).Replace('\\', '/');
         }
     }
 

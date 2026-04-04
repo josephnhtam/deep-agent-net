@@ -48,7 +48,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
         {
             if (!_subAgentMap.TryGetValue(subAgentType, out SubAgent? subAgent))
             {
-                return $"Error: invoked agent of type ${subAgentType}, the only allowed types are ${string.Join(", ", _subAgentMap.Keys)}";
+                return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys)}";
             }
 
             AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken).ConfigureAwait(false);

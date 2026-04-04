@@ -66,7 +66,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         break;
                 }
 
-                return sb.ToString();
+                var result = sb.ToString();
+                return result;
             }
             catch (Exception ex)
             {

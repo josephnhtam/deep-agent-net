@@ -31,7 +31,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("Glob pattern (e.g., '*.py', '**/*.ts')")]
+            [Description("The text pattern to search for in file contents")]
             string pattern,
             [Description("Base path to search from (default: /)")]
             string path = "/",
