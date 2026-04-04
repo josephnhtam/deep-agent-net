@@ -3,7 +3,6 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
-using System.Text;
 using System.Text.RegularExpressions;
 
 namespace DeepAgentNet.FileSystems
@@ -16,16 +15,16 @@ namespace DeepAgentNet.FileSystems
         private readonly FileSystemAccessOptions _options;
         private readonly ILogger<FileSystemAccess>? _logger;
 
-        public FileSystemAccess(string rootPath, FileSystemAccessOptions? options = null, ILoggerFactory? loggerFactory = null)
+        public FileSystemAccess(DirectoryInfo root, FileSystemAccessOptions? options = null, ILoggerFactory? loggerFactory = null)
         {
-            _rootPath = rootPath;
+            _rootPath = root.FullName;
             _options = options ?? new FileSystemAccessOptions();
             _logger = loggerFactory?.CreateLogger<FileSystemAccess>();
         }
 
         private string ResolveFullPath(string path)
         {
-            string fullPath = Path.IsPathFullyQualified(path) ? path : Path.GetFullPath(Path.Combine(_rootPath, path));
+            string fullPath = Path.GetFullPath(Path.Combine(_rootPath, path.TrimStart('/')));
 
             if (_options.RestrictToRoot && !fullPath.StartsWith(_rootPath))
             {
@@ -48,59 +47,47 @@ namespace DeepAgentNet.FileSystems
 
             List<FileSystemInfo> results = [];
 
-            results.AddRange(directoryInfo.EnumerateFiles().Select(f => new FileSystemInfo(
-                Path: f.FullName,
-                IsDirectory: false,
-                Size: f.Length,
-                ModifiedAt: f.LastWriteTime)));
-
             results.AddRange(directoryInfo.EnumerateDirectories().Select(d => new FileSystemInfo(
                 Path: d.FullName + Path.DirectorySeparatorChar,
                 IsDirectory: true,
                 Size: 0,
                 ModifiedAt: d.LastWriteTime)));
 
+            results.AddRange(directoryInfo.EnumerateFiles().Select(f => new FileSystemInfo(
+                Path: f.FullName,
+                IsDirectory: false,
+                Size: f.Length,
+                ModifiedAt: f.LastWriteTime)));
+
             return new(results);
         }
 
-        public async ValueTask<string> ReadAsync(string filePath, int offset = 0, int limit = 500, CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<string> ReadAsync(string filePath, int offset = 0, int limit = 500, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (limit <= 0)
-                return string.Empty;
+                yield break;
 
             string fullPath = ResolveFullPath(filePath);
             _logger?.ReadingFile(fullPath, offset, limit);
 
-            StringBuilder stringBuilder = new();
+            var (lineNumberWidth, maxLineLength) = (_options.LineNumberWidth, _options.MaxLineLength);
             var (current, total) = (0, 0);
 
-            await foreach (string line in ReadLineAsync(fullPath, cancellationToken))
+            await foreach (string line in ReadLineAsync(fullPath, cancellationToken).ConfigureAwait(false))
             {
                 if (current >= offset + limit)
                     break;
 
-                if (current >= offset)
+                if (current < offset)
                 {
-                    WriteFormattedLine(line, current + 1);
+                    current++;
                     total++;
+                    continue;
                 }
-
-                current++;
-            }
-
-            if (offset >= current && total == 0 && current > 0)
-                throw new IndexOutOfRangeException($"Line offset {offset} exceeds file length ({current} lines)");
-
-            return stringBuilder.ToString();
-
-            void WriteFormattedLine(string line, int lineNum)
-            {
-                int lineNumberWidth = _options.LineNumberWidth;
-                int? maxLineLength = _options.MaxLineLength;
 
                 if (maxLineLength == null || line.Length <= maxLineLength.Value)
                 {
-                    WriteLine(lineNum.ToString(), line);
+                    yield return $"{current.ToString().PadLeft(lineNumberWidth)}\t{line}";
                 }
                 else
                 {
@@ -111,41 +98,18 @@ namespace DeepAgentNet.FileSystems
                         int start = chunkIdx * maxLineLength.Value;
                         int length = Math.Min(maxLineLength.Value, line.Length - start);
                         string chunk = line.Substring(start, length);
+                        string marker = chunkIdx == 0 ? current.ToString() : $"{current}.{chunkIdx}";
 
-                        WriteLine(chunkIdx == 0 ? lineNum.ToString() : $"{lineNum}.{chunkIdx}", chunk);
+                        yield return $"{marker.PadRight(maxLineLength.Value)}\t{chunk}";
                     }
                 }
 
-                return;
-
-                void WriteLine(string marker, string content)
-                {
-                    stringBuilder.Append(marker.PadLeft(lineNumberWidth));
-                    stringBuilder.Append('\t');
-                    stringBuilder.AppendLine(content);
-                }
-            }
-        }
-
-        public async ValueTask<FileData> ReadRawAsync(string filePath, CancellationToken cancellationToken = default)
-        {
-            string fullPath = ResolveFullPath(filePath);
-            _logger?.ReadingRawFile(fullPath);
-
-            List<string> result = new();
-
-            await foreach (string line in ReadLineAsync(fullPath, cancellationToken))
-            {
-                result.Add(line);
+                current++;
+                total++;
             }
 
-            FileInfo fileInfo = new(fullPath);
-
-            return new FileData(
-                Content: result,
-                CreatedAt: fileInfo.CreationTime,
-                ModifiedAt: fileInfo.LastWriteTime
-            );
+            if (offset >= current && total == 0 && current > 0)
+                throw new IndexOutOfRangeException($"Line offset {offset} exceeds file length ({current} lines)");
         }
 
         public async ValueTask<List<GrepMatch>> GrepAsync(string pattern, string? dirPath = null, string? glob = null, CancellationToken cancellationToken = default)
@@ -166,7 +130,8 @@ namespace DeepAgentNet.FileSystems
             await Parallel.ForEachAsync(
                 directoryInfo.EnumerateFiles(glob ?? "*", SearchOption.AllDirectories),
                 new ParallelOptions { MaxDegreeOfParallelism = _options.GrepParallelism },
-                async (fileInfo, ct) => await SingleFileGrepAsync(fileInfo, ct));
+                async (fileInfo, ct) => await SingleFileGrepAsync(fileInfo, ct).ConfigureAwait(false)
+            ).ConfigureAwait(false);
 
             return results;
 
@@ -204,7 +169,7 @@ namespace DeepAgentNet.FileSystems
                     }
 
                     int lineNumber = 0;
-                    await foreach (string line in ReadLineAsync(fileInfo.FullName, ct))
+                    await foreach (string line in ReadLineAsync(fileInfo.FullName, ct).ConfigureAwait(false))
                     {
                         lineNumber++;
 
@@ -270,17 +235,39 @@ namespace DeepAgentNet.FileSystems
                 return fileSystemInfos;
             }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
 
-            return await task;
+            return await task.ConfigureAwait(false);
         }
 
-        public async ValueTask<WriteResult> WriteAsync(string filePath, string content, CancellationToken cancellationToken = default)
+        public async ValueTask WriteAsync(string filePath, string content, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(filePath);
             _logger?.WritingContent(fullPath);
 
+            FileInfo fileInfo = new(fullPath);
+            bool isSymlink = fileInfo.Exists && fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint);
+
+            if (isSymlink)
+                throw new IOException($"Cannot write to {filePath} because it is a symlink. Symlinks are not allowed.");
+
+            if (fileInfo.Exists)
+                throw new IOException($"Cannot write to {filePath} because it already exists.");
+
             EnsureDirectory(fullPath);
-            await WriteFileAsync(filePath, content, cancellationToken);
-            return new WriteResult(filePath);
+
+            try
+            {
+                var fileStream = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                await using var _ = fileStream.ConfigureAwait(false);
+
+                var writer = new StreamWriter(fileStream);
+                await using var __ = writer.ConfigureAwait(false);
+
+                await writer.WriteAsync(content).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger?.FailedToWriteFile(ex, fullPath);
+            }
         }
 
         public async ValueTask<EditResult> EditAsync(string filePath, string oldString, string newString, bool replaceAll = false, CancellationToken cancellationToken = default)
@@ -288,13 +275,40 @@ namespace DeepAgentNet.FileSystems
             string fullPath = ResolveFullPath(filePath);
             _logger?.AttemptingToEditFile(fullPath);
 
-            string content = await ReadFileAsync(cancellationToken, fullPath);
+            try
+            {
+                FileInfo fileInfo = new(fullPath);
 
-            (string newContent, int occurrences) = PerformStringReplacement(content, oldString, newString, replaceAll);
+                if (!fileInfo.Exists)
+                    throw new FileNotFoundException("File not found");
 
-            await WriteFileAsync(filePath, newContent, cancellationToken);
+                if (fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    throw new IOException("Symlinks are not allowed");
 
-            return new EditResult(filePath, occurrences);
+                var fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+                await using var _ = fileStream.ConfigureAwait(false);
+
+                using var reader = new StreamReader(fileStream, leaveOpen: true);
+                string content = await reader.ReadToEndAsync(cancellationToken).ConfigureAwait(false);
+
+                (string newContent, int occurrences) = PerformStringReplacement(content, oldString, newString, replaceAll);
+
+                fileStream.Position = 0;
+                fileStream.SetLength(0);
+
+                var writer = new StreamWriter(fileStream, leaveOpen: true);
+                await using var __ = writer.ConfigureAwait(false);
+
+                await writer.WriteAsync(newContent.AsMemory(), cancellationToken).ConfigureAwait(false);
+                await writer.FlushAsync(cancellationToken).ConfigureAwait(false);
+
+                return new EditResult(occurrences);
+            }
+            catch (Exception ex)
+            {
+                _logger?.FailedToEditFile(ex, fullPath);
+                throw;
+            }
 
             static (string NewContent, int Occurrences) PerformStringReplacement(string content, string oldString, string newString, bool replaceAll)
             {
@@ -309,7 +323,7 @@ namespace DeepAgentNet.FileSystems
                 int occurrences = content.AsSpan().Count(oldString);
 
                 if (occurrences == 0)
-                    throw new ArgumentException($"String not found in file: '{oldString}", nameof(oldString));
+                    throw new ArgumentException($"String not found in file: '{oldString}'", nameof(oldString));
 
                 if (occurrences > 1 && !replaceAll)
                 {
@@ -320,32 +334,6 @@ namespace DeepAgentNet.FileSystems
                 }
 
                 return (content.Replace(oldString, newString), occurrences);
-            }
-        }
-
-        private async ValueTask<string> ReadFileAsync(CancellationToken cancellationToken, string fullPath)
-        {
-            try
-            {
-                return await File.ReadAllTextAsync(fullPath, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger?.FailedToReadFile(ex, fullPath);
-                throw;
-            }
-        }
-
-        private async ValueTask WriteFileAsync(string fullPath, string content, CancellationToken cancellationToken)
-        {
-            try
-            {
-                await File.WriteAllTextAsync(fullPath, content, cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger?.FailedToWriteFile(ex, fullPath);
-                throw;
             }
         }
 
@@ -374,10 +362,10 @@ namespace DeepAgentNet.FileSystems
                 throw;
             }
 
-            await using var _ = stream;
+            await using var _ = stream.ConfigureAwait(false);
             using StreamReader reader = new(stream);
 
-            while (await reader.ReadLineAsync(cancellationToken) is { } line)
+            while (await reader.ReadLineAsync(cancellationToken).ConfigureAwait(false) is { } line)
             {
                 yield return line;
             }

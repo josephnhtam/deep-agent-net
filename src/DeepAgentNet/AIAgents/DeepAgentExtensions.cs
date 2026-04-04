@@ -1,3 +1,4 @@
+using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.SubAgents.Internal;
 using DeepAgentNet.TodoLists.Internal;
@@ -26,14 +27,18 @@ namespace DeepAgentNet.AIAgents
             return new DeepAgent(agent);
 
             List<AIContextProvider> CreateDeepAgentContextProviders(ChatClientAgentOptions agentOptions) =>
-            [
-                CreateTodoListProvider(deepAgentOptions),
-                CreateSubAgentProvider(client, agentOptions, deepAgentOptions, loggerFactory, services)
-            ];
+                CollectContextProviders(
+                    CreateTodoListProvider(deepAgentOptions),
+                    CreateSubAgentProvider(client, agentOptions, deepAgentOptions, loggerFactory, services),
+                    CreateFileSystemProvider(deepAgentOptions)
+                );
         }
 
         private static TodoListProvider CreateTodoListProvider(DeepAgentOptions? deepAgentOptions) =>
             new(deepAgentOptions?.TodoList);
+
+        private static FileSystemProvider? CreateFileSystemProvider(DeepAgentOptions? deepAgentOptions) =>
+            deepAgentOptions?.FileSystem != null ? new(deepAgentOptions.FileSystem) : null;
 
         private static AIContextProvider CreateSubAgentProvider(IChatClient client, ChatClientAgentOptions options,
             DeepAgentOptions? deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
@@ -47,15 +52,18 @@ namespace DeepAgentNet.AIAgents
 
             return new SubAgentProvider(defaultOptions, deepAgentOptions?.SubAgent, loggerFactory, services);
 
-            List<AIContextProvider> CreateDefaultContextProviders() =>
-            [
+            List<AIContextProvider> CreateDefaultContextProviders() => CollectContextProviders(
                 CreateTodoListProvider(deepAgentOptions),
-            ];
+                CreateFileSystemProvider(deepAgentOptions)
+            );
 
-            List<AIContextProvider> CreateGeneralPurposeContextProviders() =>
-            [
+            List<AIContextProvider> CreateGeneralPurposeContextProviders() => CollectContextProviders(
                 CreateTodoListProvider(deepAgentOptions),
-            ];
+                CreateFileSystemProvider(deepAgentOptions)
+            );
         }
+
+        private static List<AIContextProvider> CollectContextProviders(params AIContextProvider?[] providers) =>
+            providers.Where(provider => provider != null).ToList()!;
     }
 }
