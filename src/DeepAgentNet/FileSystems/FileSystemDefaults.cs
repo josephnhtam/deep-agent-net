@@ -85,15 +85,15 @@ namespace DeepAgentNet.FileSystems
             """;
 
         public const string GrepToolDescription = """
-            Search for a text pattern across files.
+            Search for a pattern across files.
 
-            Searches for literal text (not regex) and returns matching files or content based on output_mode.
-            Special characters like parentheses, brackets, pipes, etc. are treated as literal characters, not regex operators.
+            By default, searches for literal text. Set isRegex=true to use regular expression matching.
+            When using literal mode, special characters like parentheses, brackets, pipes, etc. are treated as literal characters.
 
             Examples:
             - Search all files: `grep(pattern="TODO")`
             - Search Python files only: `grep(pattern="import", glob="*.py")`
-            - Show matching lines: `grep(pattern="error", output_mode="content")`
+            - Regex search: `grep(pattern="function\\s+\\w+", isRegex=true)`
             - Search for code with special chars: `grep(pattern="def __init__(self):")`
             """;
     }

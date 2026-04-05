@@ -31,12 +31,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("The text pattern to search for in file contents")]
+            [Description("The search pattern. Literal text by default, or a regular expression if isRegex is true.")]
             string pattern,
             [Description("Base path to search from (default: /)")]
             string path = "/",
             [Description("Optional glob pattern to filter files (e.g., '*.py')")]
             string? glob = null,
+            [Description("If true, treat pattern as a regular expression. Defaults to false (literal text search).")]
+            bool isRegex = false,
             CancellationToken cancellationToken = default)
         {
             try
@@ -44,7 +46,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 if (string.IsNullOrWhiteSpace(path))
                     path = "/";
 
-                List<GrepMatch> matches = await _access.GrepAsync(pattern, path, glob, cancellationToken).ConfigureAwait(false);
+                List<GrepMatch> matches = await _access.GrepAsync(pattern, path, glob, isRegex, cancellationToken).ConfigureAwait(false);
 
                 if (!matches.Any())
                     return $"No matches found for pattern '{pattern}'";

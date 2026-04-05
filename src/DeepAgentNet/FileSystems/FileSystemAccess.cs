@@ -3,6 +3,7 @@ using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
 using System.Runtime.CompilerServices;
+using System.Text.RegularExpressions;
 
 namespace DeepAgentNet.FileSystems
 {
@@ -113,7 +114,7 @@ namespace DeepAgentNet.FileSystems
                 throw new IndexOutOfRangeException($"Line offset {offset} exceeds file length ({current} lines)");
         }
 
-        public async ValueTask<List<GrepMatch>> GrepAsync(string pattern, string? dirPath = null, string? glob = null, CancellationToken cancellationToken = default)
+        public async ValueTask<List<GrepMatch>> GrepAsync(string pattern, string? dirPath = null, string? glob = null, bool isRegex = false, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(dirPath ?? ".");
             _logger?.ExecutingGrep(pattern, fullPath, glob ?? "*");
@@ -122,6 +123,8 @@ namespace DeepAgentNet.FileSystems
 
             if (!directoryInfo.Exists)
                 return [];
+
+            Regex? regex = isRegex ? new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase) : null;
 
             Matcher? matcher = CreateMatcher();
             string normalizedDirPath = NormalizeVirtualPath(dirPath ?? "/");
@@ -166,7 +169,9 @@ namespace DeepAgentNet.FileSystems
                     {
                         lineNumber++;
 
-                        if (!line.Contains(pattern, StringComparison.Ordinal))
+                        bool isMatch = regex?.IsMatch(line) ?? line.Contains(pattern, StringComparison.OrdinalIgnoreCase);
+
+                        if (!isMatch)
                             continue;
 
                         lock (results)
