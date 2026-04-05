@@ -35,7 +35,7 @@ namespace DeepAgentNet.FileSystems
             return fullPath;
         }
 
-        public ValueTask<List<FileSystemInfo>> ListInfoAsync(string path, CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<FileSystemInfo> ListInfoAsync(string path, bool recursive = false, string[]? ignore = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(path);
             _logger?.ListingDirectoryInfo(fullPath);
@@ -43,23 +43,57 @@ namespace DeepAgentNet.FileSystems
             DirectoryInfo directoryInfo = new(fullPath);
 
             if (!directoryInfo.Exists)
-                return new(new List<FileSystemInfo>());
+                yield break;
 
-            List<FileSystemInfo> results = [];
+            var ignorePatterns = ignore is { Length: > 0 }
+                ? _options.LsIgnorePatterns.Concat(ignore).ToArray()
+                : _options.LsIgnorePatterns;
 
-            results.AddRange(directoryInfo.EnumerateDirectories().Select(d => new FileSystemInfo(
-                Path: d.Name + "/",
-                IsDirectory: true,
-                Size: 0,
-                ModifiedAt: d.LastWriteTime)));
+            var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
 
-            results.AddRange(directoryInfo.EnumerateFiles().Select(f => new FileSystemInfo(
-                Path: f.Name,
-                IsDirectory: false,
-                Size: f.Length,
-                ModifiedAt: f.LastWriteTime)));
+            foreach (var entry in directoryInfo.EnumerateDirectories("*", searchOption))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
 
-            return new(results);
+                string relative = Path.GetRelativePath(fullPath, entry.FullName).Replace('\\', '/');
+
+                if (IsIgnored(relative, ignorePatterns))
+                    continue;
+
+                yield return new FileSystemInfo(
+                    Path: $"{relative}/",
+                    IsDirectory: true,
+                    Size: 0,
+                    ModifiedAt: entry.LastWriteTime);
+            }
+
+            foreach (var entry in directoryInfo.EnumerateFiles("*", searchOption))
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                string relative = Path.GetRelativePath(fullPath, entry.FullName).Replace('\\', '/');
+
+                if (IsIgnored(relative, ignorePatterns))
+                    continue;
+
+                yield return new FileSystemInfo(
+                    Path: relative,
+                    IsDirectory: false,
+                    Size: entry.Length,
+                    ModifiedAt: entry.LastWriteTime);
+            }
+
+            static bool IsIgnored(string relativePath, string[] patterns)
+            {
+                foreach (string pattern in patterns)
+                {
+                    if (relativePath.StartsWith(pattern, StringComparison.OrdinalIgnoreCase) ||
+                        relativePath.Contains("/" + pattern, StringComparison.OrdinalIgnoreCase))
+                        return true;
+                }
+
+                return false;
+            }
         }
 
         public async IAsyncEnumerable<string> ReadAsync(string filePath, int offset = 0, int limit = 500, [EnumeratorCancellation] CancellationToken cancellationToken = default)
@@ -418,5 +452,12 @@ namespace DeepAgentNet.FileSystems
         public int LineNumberWidth { get; init; } = 6;
         public int? MaxLineLength { get; init; } = null;
         public int GrepParallelism { get; init; } = Environment.ProcessorCount;
+        public string[] LsIgnorePatterns { get; init; } =
+        [
+            "node_modules/", "__pycache__/", ".git/", "dist/", "build/",
+            "target/", "vendor/", "bin/", "obj/", ".idea/", ".vscode/",
+            ".zig-cache/", "zig-out/", ".coverage/", "coverage/",
+            "tmp/", "temp/", ".cache/", "cache/", "logs/", ".venv/", "venv/", "env/"
+        ];
     }
 }

@@ -35,6 +35,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         private async ValueTask<string> ExecuteAsync(
             [Description("Directory path to list (default: /)")]
             string path = "/",
+            [Description("Whether to list recursively (default: false)")]
+            bool recursive = false,
             CancellationToken cancellationToken = default)
         {
             try
@@ -42,19 +44,19 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 if (string.IsNullOrWhiteSpace(path))
                     path = "/";
 
-                List<FileSystemInfo> lsInfo = await _access.ListInfoAsync(path, cancellationToken).ConfigureAwait(false);
-
-                if (!lsInfo.Any())
-                    return $"No files found in {path}";
-
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
                     new TruncatingStringBuilder(
                         _options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken,
                         SharedConstants.TruncationGuidance) :
                     new StandardStringBuilder();
 
-                foreach (FileSystemInfo info in lsInfo)
+                bool hasEntries = false;
+
+                await foreach (FileSystemInfo info in
+                    _access.ListInfoAsync(path, recursive, cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
+                    hasEntries = true;
+
                     string line = info switch
                     {
                         { IsDirectory: true } => $"{info.Path} (directory)",
@@ -66,8 +68,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         break;
                 }
 
-                var result = sb.ToString();
-                return result;
+                return hasEntries ? sb.ToString() : $"No files found in {path}";
             }
             catch (Exception ex)
             {

@@ -32,7 +32,10 @@ namespace DeepAgentNet.FileSystems
             """;
 
         public const string LsToolDescription = """
-            Lists all files in a directory.
+            Lists files and directories recursively in a given path (up to 100 files).
+            Returns a tree view of the directory structure. Common directories like
+            node_modules, .git, dist, build, etc. are automatically excluded.
+            You can optionally provide an array of patterns to ignore with the ignore parameter.
 
             This is useful for exploring the filesystem and finding the right file to read or edit.
             You should almost ALWAYS use this tool before using the read_file or edit_file tools.
