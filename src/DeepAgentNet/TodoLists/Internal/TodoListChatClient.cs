@@ -6,7 +6,7 @@ namespace DeepAgentNet.TodoLists.Internal
     {
         private readonly TodoListProviderOptions? _options;
 
-        public TodoListChatClient(IChatClient innerClient, TodoListProviderOptions? options) : base(innerClient)
+        internal TodoListChatClient(IChatClient innerClient, TodoListProviderOptions? options) : base(innerClient)
         {
             _options = options;
         }

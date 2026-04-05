@@ -1,3 +1,4 @@
+using DeepAgentNet.AIAgents;
 using DeepAgentNet.SubAgents.Internal.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -61,7 +62,10 @@ namespace DeepAgentNet.SubAgents.Internal
                         ..defaultOptions.DefaultGeneralPurposeContextProviders
                     ];
 
-                    return new(new ChatClientAgent(defaultOptions.DefaultChatClient, agentOptions, loggerFactory, services));
+                    AIAgent agent = new ChatClientAgent(defaultOptions.DefaultChatClient, agentOptions, loggerFactory, services);
+                    agent = new DeepAgent(agent);
+
+                    return new(agent);
                 }
 
                 subAgents.Add(new SubAgent(

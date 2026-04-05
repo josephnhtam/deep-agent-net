@@ -407,7 +407,6 @@ namespace DeepAgentNet.FileSystems
         public long MaxGrepFileBytesSize { get; init; } = 10_000_000;
         public int LineNumberWidth { get; init; } = 6;
         public int? MaxLineLength { get; init; } = null;
-        public bool NonBacktrackingGrep { get; init; } = true;
         public int GrepParallelism { get; init; } = Environment.ProcessorCount;
     }
 }

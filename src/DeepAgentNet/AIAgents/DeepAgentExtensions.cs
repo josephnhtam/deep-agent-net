@@ -1,3 +1,4 @@
+using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.SubAgents.Internal;
@@ -18,12 +19,16 @@ namespace DeepAgentNet.AIAgents
             IServiceProvider? services = null)
         {
             client = client.AsTodoListChatClient(deepAgentOptions?.TodoList);
+
+            if (deepAgentOptions?.Compaction is not null)
+                client = client.AsCompactionChatClient(deepAgentOptions.Compaction);
+
             List<AIContextProvider> deepAgentContextProviders = CreateDeepAgentContextProviders(options.Clone());
 
             options = options.Clone();
             options.AIContextProviders = [..options.AIContextProviders ?? [], ..deepAgentContextProviders];
 
-            ChatClientAgent agent = new ChatClientAgent(client, options, loggerFactory, services);
+            AIAgent agent = new ChatClientAgent(client, options, loggerFactory, services);
             return new DeepAgent(agent);
 
             List<AIContextProvider> CreateDeepAgentContextProviders(ChatClientAgentOptions agentOptions) =>
