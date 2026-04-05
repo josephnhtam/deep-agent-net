@@ -12,10 +12,12 @@ namespace DeepAgentNet.FileSystems
 
         public const string GlobToolName = "glob";
 
+        public const string DeleteFileToolName = "delete_file";
+
         public const string GrepToolName = "grep";
 
         public const string SystemPrompt = $"""
-            ## Filesystem Tools `{LsToolName}`, `{ReadFileToolName}`, `{WriteFileToolName}`, `{EditFileToolName}`, `{GlobToolName}`, `{GrepToolName}`
+            ## Filesystem Tools `{LsToolName}`, `{ReadFileToolName}`, `{WriteFileToolName}`, `{EditFileToolName}`, `{DeleteFileToolName}`, `{GlobToolName}`, `{GrepToolName}`
 
             You have access to a filesystem which you can interact with using these tools.
             All file paths must start with a /.
@@ -24,6 +26,7 @@ namespace DeepAgentNet.FileSystems
             - read_file: read a file from the filesystem
             - write_file: write to a file in the filesystem
             - edit_file: edit a file in the filesystem
+            - delete_file: delete a file from the filesystem
             - glob: find files matching a pattern (e.g., "**/*.py")
             - grep: search for text within files
             """;
@@ -70,6 +73,12 @@ namespace DeepAgentNet.FileSystems
             - When editing, preserve the exact indentation (tabs/spaces) from the read output. Never include line number prefixes in old_string or new_string.
             - ALWAYS prefer editing existing files over creating new ones.
             - Only use emojis if the user explicitly requests it.
+            """;
+
+        public const string DeleteFileToolDescription = """
+            Deletes a file from the filesystem.
+
+            The file must exist. The operation will fail if the file does not exist or is a symlink.
             """;
 
         public const string GlobToolDescription = """

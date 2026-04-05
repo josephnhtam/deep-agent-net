@@ -7,7 +7,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace DeepAgentNet.AIAgents
+namespace DeepAgentNet.Agents
 {
     public static class DeepAgentExtensions
     {

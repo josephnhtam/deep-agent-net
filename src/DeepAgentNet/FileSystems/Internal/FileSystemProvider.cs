@@ -17,6 +17,7 @@ namespace DeepAgentNet.FileSystems.Internal
             FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions);
             FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions);
             FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions);
+            FileDeleteToolProvider fileDeleteToolProvider = new(options.Access, options.DeleteFileToolOptions);
             GlobToolProvider globToolProvider = new(options.Access, options.GlobToolOptions);
             GrepToolProvider grepToolProvider = new(options.Access, options.GrepToolOptions);
 
@@ -26,6 +27,7 @@ namespace DeepAgentNet.FileSystems.Internal
                 fileReadToolProvider.Tool,
                 fileWriteToolProvider.Tool,
                 fileEditToolProvider.Tool,
+                fileDeleteToolProvider.Tool,
                 globToolProvider.Tool,
                 grepToolProvider.Tool
             ];

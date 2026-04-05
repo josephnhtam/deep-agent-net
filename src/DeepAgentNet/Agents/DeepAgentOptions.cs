@@ -3,7 +3,7 @@ using DeepAgentNet.FileSystems;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.TodoLists;
 
-namespace DeepAgentNet.AIAgents
+namespace DeepAgentNet.Agents
 {
     public record DeepAgentOptions
     {

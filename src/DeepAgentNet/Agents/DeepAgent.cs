@@ -1,7 +1,7 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace DeepAgentNet.AIAgents
+namespace DeepAgentNet.Agents
 {
     public class DeepAgent : DelegatingAIAgent
     {

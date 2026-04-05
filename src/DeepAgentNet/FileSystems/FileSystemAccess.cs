@@ -339,6 +339,31 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
+        public ValueTask DeleteAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            string fullPath = ResolveFullPath(filePath);
+            _logger?.DeletingFile(fullPath);
+
+            try
+            {
+                FileInfo fileInfo = new(fullPath);
+
+                if (!fileInfo.Exists)
+                    throw new FileNotFoundException("File not found", fullPath);
+
+                if (fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    throw new IOException($"Cannot delete {filePath} because it is a symlink. Symlinks are not allowed.");
+
+                File.Delete(fullPath);
+                return default;
+            }
+            catch (Exception ex)
+            {
+                _logger?.FailedToDeleteFile(ex, fullPath);
+                throw;
+            }
+        }
+
         private async IAsyncEnumerable<string> ReadLineAsync(string fullPath, [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             FileInfo fileInfo = new(fullPath);

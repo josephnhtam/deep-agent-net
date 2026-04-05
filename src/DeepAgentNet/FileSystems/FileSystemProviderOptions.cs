@@ -12,5 +12,6 @@ namespace DeepAgentNet.FileSystems
         public TokenLimitedToolOptions GrepToolOptions { get; init; } = new();
         public ToolOptions WriteFileToolOptions { get; init; } = new() { ApprovalPolicy = ToolApprovalPolicy.Required };
         public ToolOptions EditFileToolOptions { get; init; } = new() { ApprovalPolicy = ToolApprovalPolicy.Required };
+        public ToolOptions DeleteFileToolOptions { get; init; } = new() { ApprovalPolicy = ToolApprovalPolicy.Required };
     }
 }

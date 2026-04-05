@@ -54,5 +54,11 @@ namespace DeepAgentNet.FileSystems
 
         [LoggerMessage(LogLevel.Error, "Failed to ensure directory {DirectoryPath} exists.")]
         public static partial void FailedToEnsureDirectory(this ILogger<FileSystemAccess> logger, Exception ex, string directoryPath);
+
+        [LoggerMessage(LogLevel.Debug, "Deleting file {Path}")]
+        public static partial void DeletingFile(this ILogger<FileSystemAccess> logger, string path);
+
+        [LoggerMessage(LogLevel.Error, "Failed to delete file {FilePath}.")]
+        public static partial void FailedToDeleteFile(this ILogger<FileSystemAccess> logger, Exception ex, string filePath);
     }
 }

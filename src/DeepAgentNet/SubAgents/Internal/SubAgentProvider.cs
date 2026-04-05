@@ -1,4 +1,4 @@
-using DeepAgentNet.AIAgents;
+using DeepAgentNet.Agents;
 using DeepAgentNet.SubAgents.Internal.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;

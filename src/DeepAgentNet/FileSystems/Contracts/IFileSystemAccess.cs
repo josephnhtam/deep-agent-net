@@ -8,6 +8,7 @@ namespace DeepAgentNet.FileSystems.Contracts
         ValueTask<List<FileSystemInfo>> GlobInfoAsync(string pattern, string? path = null, CancellationToken cancellationToken = default);
         ValueTask WriteAsync(string filePath, string content, CancellationToken cancellationToken = default);
         ValueTask<EditResult> EditAsync(string filePath, string oldString, string newString, bool replaceAll = false, CancellationToken cancellationToken = default);
+        ValueTask DeleteAsync(string filePath, CancellationToken cancellationToken = default);
     }
 
     public record struct FileSystemInfo(string Path, bool IsDirectory, long Size, DateTime ModifiedAt);
