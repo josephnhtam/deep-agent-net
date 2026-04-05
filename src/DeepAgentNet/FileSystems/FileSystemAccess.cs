@@ -45,18 +45,16 @@ namespace DeepAgentNet.FileSystems
             if (!directoryInfo.Exists)
                 return new(new List<FileSystemInfo>());
 
-            string normalizedPath = NormalizeVirtualPath(path);
-
             List<FileSystemInfo> results = [];
 
             results.AddRange(directoryInfo.EnumerateDirectories().Select(d => new FileSystemInfo(
-                Path: CombineVirtualPath(normalizedPath, d.Name) + "/",
+                Path: d.Name + "/",
                 IsDirectory: true,
                 Size: 0,
                 ModifiedAt: d.LastWriteTime)));
 
             results.AddRange(directoryInfo.EnumerateFiles().Select(f => new FileSystemInfo(
-                Path: CombineVirtualPath(normalizedPath, f.Name),
+                Path: f.Name,
                 IsDirectory: false,
                 Size: f.Length,
                 ModifiedAt: f.LastWriteTime)));
@@ -127,7 +125,6 @@ namespace DeepAgentNet.FileSystems
             Regex? regex = isRegex ? new Regex(pattern, RegexOptions.Compiled | RegexOptions.IgnoreCase) : null;
 
             Matcher? matcher = CreateMatcher();
-            string normalizedDirPath = NormalizeVirtualPath(dirPath ?? "/");
 
             List<GrepMatch> results = new();
 
@@ -162,8 +159,6 @@ namespace DeepAgentNet.FileSystems
                         return;
                     }
 
-                    string virtualPath = CombineVirtualPath(normalizedDirPath, relativePath);
-
                     int lineNumber = 0;
                     await foreach (string line in ReadLineAsync(fileInfo.FullName, ct).ConfigureAwait(false))
                     {
@@ -176,7 +171,7 @@ namespace DeepAgentNet.FileSystems
 
                         lock (results)
                         {
-                            results.Add(new GrepMatch(virtualPath, lineNumber, line));
+                            results.Add(new GrepMatch(relativePath, lineNumber, line));
                         }
                     }
                 }
@@ -207,8 +202,6 @@ namespace DeepAgentNet.FileSystems
                 return [];
             }
 
-            string normalizedPath = NormalizeVirtualPath(path ?? "/");
-
             Matcher matcher = new Matcher().AddInclude(pattern);
             DirectoryInfoWrapper directoryInfoWrapper = new(directoryInfo);
             PatternMatchingResult result = matcher.Execute(directoryInfoWrapper);
@@ -221,12 +214,10 @@ namespace DeepAgentNet.FileSystems
                 {
                     cancellationToken.ThrowIfCancellationRequested();
 
-                    string diskPath = Path.Combine(fullPath, match.Path);
-                    FileInfo fileInfo = new(diskPath);
-                    string virtualPath = CombineVirtualPath(normalizedPath, match.Path);
+                    FileInfo fileInfo = new(Path.Combine(fullPath, match.Path));
 
                     fileSystemInfos.Add(new FileSystemInfo(
-                        Path: virtualPath,
+                        Path: match.Path,
                         IsDirectory: false,
                         Size: fileInfo.Length,
                         ModifiedAt: fileInfo.LastWriteTime
@@ -417,17 +408,6 @@ namespace DeepAgentNet.FileSystems
                 _logger?.FailedToEnsureDirectory(ex, fullPath);
                 throw;
             }
-        }
-
-        private static string NormalizeVirtualPath(string path)
-        {
-            string normalized = path.Replace('\\', '/').TrimEnd('/');
-            return string.IsNullOrEmpty(normalized) ? "/" : normalized;
-        }
-
-        private static string CombineVirtualPath(string basePath, string relativePath)
-        {
-            return Path.Combine(basePath, relativePath).Replace('\\', '/');
         }
     }
 
