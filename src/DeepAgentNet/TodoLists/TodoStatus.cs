@@ -8,5 +8,6 @@ namespace DeepAgentNet.TodoLists
         Pending,
         InProgress,
         Completed,
+        Cancelled,
     }
 }

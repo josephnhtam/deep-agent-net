@@ -19,7 +19,7 @@ namespace DeepAgentNet.TodoLists
 
             ## Important To-Do List Usage Notes to Remember
             - The `{ToolName}` tool should never be called multiple times in parallel.
-            - Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant.
+            - Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant. Mark irrelevant tasks as cancelled rather than silently removing them.
             """;
 
         public const string ToolDescription = """
@@ -209,12 +209,13 @@ namespace DeepAgentNet.TodoLists
                - pending: Task not yet started
                - in_progress: Currently working on (you can have multiple tasks in_progress at a time if they are not related to each other and can be run in parallel)
                - completed: Task finished successfully
+               - cancelled: Task is no longer needed or relevant (use this instead of silently removing tasks, so the user can see what was planned but skipped)
 
             2. **Task Management**:
                - Update task status in real-time as you work
                - Mark tasks complete IMMEDIATELY after finishing (don't batch completions)
                - Complete current tasks before starting new ones
-               - Remove tasks that are no longer relevant from the list entirely
+               - Cancel tasks that are no longer relevant instead of removing them, so the user can see what was planned but skipped
                - IMPORTANT: When you write this todo list, you should mark your first task (or tasks) as in_progress immediately!.
                - IMPORTANT: Unless all tasks are completed, you should always have at least one task in_progress to show the user that you are working on something.
 
