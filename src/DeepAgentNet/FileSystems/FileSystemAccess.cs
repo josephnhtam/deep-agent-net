@@ -111,7 +111,7 @@ namespace DeepAgentNet.FileSystems
             string fullPath = ResolveFullPath(filePath);
             _logger?.ReadingFile(fullPath, offset, limit);
 
-            var (lineNumberWidth, maxLineLength) = (_options.LineNumberWidth, _options.MaxLineLength);
+            int? maxLineLength = _options.MaxLineLength;
             var (current, total) = (0, 0);
 
             await foreach (string line in ReadLineAsync(fullPath, cancellationToken).ConfigureAwait(false))
@@ -126,9 +126,11 @@ namespace DeepAgentNet.FileSystems
                     continue;
                 }
 
+                int lineNumber = current + 1;
+
                 if (maxLineLength == null || line.Length <= maxLineLength.Value)
                 {
-                    yield return $"{current.ToString().PadLeft(lineNumberWidth)}\t{line}";
+                    yield return $"#{lineNumber}:{line}";
                 }
                 else
                 {
@@ -139,9 +141,9 @@ namespace DeepAgentNet.FileSystems
                         int start = chunkIdx * maxLineLength.Value;
                         int length = Math.Min(maxLineLength.Value, line.Length - start);
                         string chunk = line.Substring(start, length);
-                        string marker = chunkIdx == 0 ? current.ToString() : $"{current}.{chunkIdx}";
+                        string marker = chunkIdx == 0 ? $"{lineNumber}" : $"{lineNumber}.{chunkIdx}";
 
-                        yield return $"{marker.PadRight(maxLineLength.Value)}\t{chunk}";
+                        yield return $"#{marker}:{chunk}";
                     }
                 }
 
@@ -292,6 +294,38 @@ namespace DeepAgentNet.FileSystems
             catch (Exception ex)
             {
                 _logger?.FailedToWriteFile(ex, fullPath);
+                throw;
+            }
+        }
+
+        public async ValueTask OverwriteAsync(string filePath, string content, CancellationToken cancellationToken = default)
+        {
+            string fullPath = ResolveFullPath(filePath);
+            _logger?.AttemptingToOverwriteFile(fullPath);
+
+            try
+            {
+                FileInfo fileInfo = new(fullPath);
+
+                if (!fileInfo.Exists)
+                    throw new FileNotFoundException("File not found");
+
+                if (fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
+                    throw new IOException("Symlinks are not allowed");
+
+                var fileStream = new FileStream(fullPath, FileMode.Open, FileAccess.Write, FileShare.None);
+                await using var _ = fileStream.ConfigureAwait(false);
+
+                fileStream.SetLength(0);
+
+                var writer = new StreamWriter(fileStream);
+                await using var __ = writer.ConfigureAwait(false);
+
+                await writer.WriteAsync(content).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger?.FailedToOverwriteFile(ex, fullPath);
                 throw;
             }
         }
@@ -448,7 +482,6 @@ namespace DeepAgentNet.FileSystems
     {
         public bool RestrictToRoot { get; init; } = true;
         public long MaxGrepFileBytesSize { get; init; } = 10_000_000;
-        public int LineNumberWidth { get; init; } = 6;
         public int? MaxLineLength { get; init; } = null;
         public int GrepParallelism { get; init; } = Environment.ProcessorCount;
         public string[] LsIgnorePatterns { get; init; } =

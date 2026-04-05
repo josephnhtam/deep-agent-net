@@ -7,6 +7,7 @@ namespace DeepAgentNet.FileSystems.Contracts
         ValueTask<List<GrepMatch>> GrepAsync(string pattern, string? dirPath = null, string? glob = null, bool isRegex = false, CancellationToken cancellationToken = default);
         IAsyncEnumerable<FileSystemInfo> GlobInfoAsync(string pattern, string? path = null, CancellationToken cancellationToken = default);
         ValueTask WriteAsync(string filePath, string content, CancellationToken cancellationToken = default);
+        ValueTask OverwriteAsync(string filePath, string content, CancellationToken cancellationToken = default);
         ValueTask<EditResult> EditAsync(string filePath, string oldString, string newString, bool replaceAll = false, CancellationToken cancellationToken = default);
         ValueTask DeleteAsync(string filePath, CancellationToken cancellationToken = default);
     }

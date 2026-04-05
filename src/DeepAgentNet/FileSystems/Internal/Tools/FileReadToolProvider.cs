@@ -35,28 +35,50 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             string filePath,
             [Description("Line offset to start reading from (0-indexed)")]
             int offset = 0,
-            [Description("Maximum number of lines to read")]
-            int limit = 100,
+            [Description("Maximum number of lines to read (defaults to 500)")]
+            int limit = 500,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
-                    new TruncatingStringBuilder(
+                TruncatingStringBuilder? truncatingBuilder = _options.ResultTokenLimit.HasValue
+                    ? new TruncatingStringBuilder(
                         _options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken,
-                        SharedConstants.TruncationGuidance) :
-                    new StandardStringBuilder();
+                        SharedConstants.TruncationGuidance)
+                    : null;
 
-                await foreach (string line in _access.ReadAsync(filePath, offset, limit, cancellationToken).ConfigureAwait(false))
+                IStringBuilder sb = truncatingBuilder ?? (IStringBuilder)new StandardStringBuilder();
+
+                int linesRead = 0;
+                bool hasMore = false;
+
+                await foreach (string line in _access.ReadAsync(filePath, offset, limit + 1, cancellationToken).ConfigureAwait(false))
                 {
+                    if (linesRead >= limit)
+                    {
+                        hasMore = true;
+                        break;
+                    }
+
                     if (!sb.AppendLine(line))
                         break;
+
+                    linesRead++;
                 }
+
+                if (linesRead == 0 && offset == 0)
+                    return "[System: This file exists but has empty contents]";
+
+                bool tokenTruncated = truncatingBuilder?.IsTruncated ?? false;
+                int startLine = offset + 1;
+                int endLine = offset + linesRead;
 
                 string result = sb.ToString();
 
-                if (string.IsNullOrEmpty(result) && offset == 0 && limit > 0)
-                    return "[System: This file exists but has empty contents]";
+                if (tokenTruncated || hasMore)
+                    result += $"\n\n(Showing lines {startLine}-{endLine}. Use offset={endLine} to continue reading.)";
+                else
+                    result += $"\n\n(End of file. Showing lines {startLine}-{endLine})";
 
                 return result;
             }

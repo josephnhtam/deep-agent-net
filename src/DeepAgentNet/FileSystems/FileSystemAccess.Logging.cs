@@ -40,6 +40,12 @@ namespace DeepAgentNet.FileSystems
         [LoggerMessage(LogLevel.Error, "Failed to write to file {FilePath}.")]
         public static partial void FailedToWriteFile(this ILogger<FileSystemAccess> logger, Exception ex, string filePath);
 
+        [LoggerMessage(LogLevel.Debug, "Attempting to overwrite file {Path}")]
+        public static partial void AttemptingToOverwriteFile(this ILogger<FileSystemAccess> logger, string path);
+
+        [LoggerMessage(LogLevel.Error, "Failed to overwrite file {FilePath}.")]
+        public static partial void FailedToOverwriteFile(this ILogger<FileSystemAccess> logger, Exception ex, string filePath);
+
         [LoggerMessage(LogLevel.Error, "Failed to edit file {FilePath}.")]
         public static partial void FailedToEditFile(this ILogger<FileSystemAccess> logger, Exception ex, string filePath);
 
