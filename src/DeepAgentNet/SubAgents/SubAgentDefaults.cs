@@ -7,7 +7,9 @@ namespace DeepAgentNet.SubAgents
         public const string SystemPrompt = $"""
             ## `{ToolName}` (subagent spawner)
 
-            You have access to a `{ToolName}` tool to launch short-lived subagents that handle isolated tasks. These agents are ephemeral — they live only for the duration of the task and return a single result.
+            You have access to a `{ToolName}` tool to launch subagents that handle isolated tasks. Each subagent runs autonomously and returns a single result. The tool accepts a short `description` (label) and a detailed `prompt` (the actual task instructions).
+
+            Subagents can be **resumed**: each result includes a `task_id` that you can pass back via the `taskId` parameter to continue the same subagent session with its full prior context intact.
 
             When to use the task tool:
             - When a task is complex and multi-step, and can be fully delegated in isolation
@@ -15,12 +17,14 @@ namespace DeepAgentNet.SubAgents
             - When a task requires focused reasoning or heavy token/context usage that would bloat the orchestrator thread
             - When sandboxing improves reliability (e.g. code execution, structured searches, data formatting)
             - When you only care about the output of the subagent, and not the intermediate steps (ex. performing a lot of research and then returned a synthesized report, performing a series of computations or lookups to achieve a concise, relevant answer.)
+            - When you need to continue a previous subagent's work by resuming with its `task_id`
 
             Subagent lifecycle:
-            1. **Spawn** → Provide clear role, instructions, and expected output
+            1. **Spawn** → Provide a short `description` and a detailed `prompt` with clear role, instructions, and expected output
             2. **Run** → The subagent completes the task autonomously
-            3. **Return** → The subagent provides a single structured result
+            3. **Return** → The subagent provides a single structured result along with a `task_id`
             4. **Reconcile** → Incorporate or synthesize the result into the main thread
+            5. **Resume** (optional) → Pass the `task_id` back to continue the same subagent session
 
             When NOT to use the task tool:
             - If you need to see the intermediate reasoning or steps after the subagent has completed (the task tool hides them)
@@ -36,7 +40,7 @@ namespace DeepAgentNet.SubAgents
 
         public static string GetToolDescription(IList<SubAgent> subAgents) =>
             $$"""
-            Launch an ephemeral subagent to handle complex, multi-step independent tasks with isolated context windows.
+            Launch a subagent to handle complex, multi-step independent tasks with isolated context windows.
 
             Available agent types and the tools they have access to:
             {{string.Join("\n", subAgents.Select(s => $"- {s.Name}: {s.Description ?? "No description provided"}"))}}
@@ -45,8 +49,8 @@ namespace DeepAgentNet.SubAgents
 
             ## Usage notes:
             1. Launch multiple agents concurrently whenever possible, to maximize performance; to do that, use a single message with multiple tool uses
-            2. When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result.
-            3. Each agent invocation is stateless. You will not be able to send additional messages to the agent, nor will the agent be able to communicate with you outside of its final report. Therefore, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.
+            2. When the agent is done, it will return a single message back to you. The result returned by the agent is not visible to the user. To show the user the result, you should send a text message back to the user with a concise summary of the result. The output includes a task_id you can reuse later to continue the same subagent session.
+            3. Each agent invocation starts with a fresh context unless you provide `taskId` to resume the same subagent session (which continues with its previous messages and tool outputs). When starting fresh, your prompt should contain a highly detailed task description for the agent to perform autonomously and you should specify exactly what information the agent should return back to you in its final and only message to you.
             4. The agent's outputs should generally be trusted
             5. Clearly tell the agent whether you expect it to create content, perform analysis, or just do research (search, file reads, web fetches, etc.), since it is not aware of the user's intent
             6. If the agent description mentions that it should be used proactively, then you should try your best to use it without the user having to ask for it first. Use your judgement.
@@ -156,7 +160,7 @@ namespace DeepAgentNet.SubAgents
         public const string GeneralPurposeAgentDescription = """
             General-purpose agent for researching complex questions, searching for files and content, and executing multi-step tasks.
             When you are searching for a keyword or file and are not confident that you will find the right match in the first few tries use this agent to perform the search for you.
-            This agent has access to all tools as the main agent.";
+            This agent has access to all tools as the main agent.
             """;
     }
 }

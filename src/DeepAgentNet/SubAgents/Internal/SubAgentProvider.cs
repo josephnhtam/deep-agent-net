@@ -10,6 +10,7 @@ namespace DeepAgentNet.SubAgents.Internal
     {
         private readonly SubAgentProviderOptions _options;
         private readonly List<AITool> _tools;
+        private readonly RunSubAgentToolProvider? _runSubAgentToolProvider;
 
         public SubAgentProvider(SubAgentDefaultOptions defaultOptions, SubAgentProviderOptions? options = null,
             ILoggerFactory? loggerFactory = null, IServiceProvider? services = null)
@@ -20,8 +21,8 @@ namespace DeepAgentNet.SubAgents.Internal
             List<SubAgent> subAgents = CreateSubAgents(_options);
             if (subAgents.Any())
             {
-                RunSubAgentToolProvider provider = new(subAgents, defaultOptions, _options.ToolDescription, loggerFactory, services);
-                _tools.Add(provider.Tool);
+                _runSubAgentToolProvider = new(subAgents, defaultOptions, _options.ToolDescription, loggerFactory, services);
+                _tools.Add(_runSubAgentToolProvider.Tool);
             }
         }
 
@@ -31,6 +32,8 @@ namespace DeepAgentNet.SubAgents.Internal
             {
                 return new(new AIContext());
             }
+
+            _runSubAgentToolProvider?.SetParentContext(context.Agent, context.Session);
 
             return new(new AIContext
             {
