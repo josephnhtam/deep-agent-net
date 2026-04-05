@@ -44,26 +44,25 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 if (string.IsNullOrWhiteSpace(path))
                     path = "/";
 
-                List<FileSystemInfo> globInfo = await _access.GlobInfoAsync(pattern, path, cancellationToken).ConfigureAwait(false);
-
-                if (!globInfo.Any())
-                    return $"No files found matching pattern '{pattern}'";
-
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
                     new TruncatingStringBuilder(
                         _options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken,
                         SharedConstants.TruncationGuidance) :
                     new StandardStringBuilder();
 
-                foreach (FileSystemInfo info in globInfo.Where(i => !i.IsDirectory))
+                bool hasEntries = false;
+
+                await foreach (var info in _access.GlobInfoAsync(pattern, path, cancellationToken).ConfigureAwait(false))
                 {
+                    hasEntries = true;
+
                     string line = $"{info.Path} ({info.Size} bytes)";
 
                     if (!sb.AppendLine(line))
                         break;
                 }
 
-                return sb.ToString();
+                return hasEntries ? sb.ToString() : $"No files found matching pattern '{pattern}'";
             }
             catch (Exception ex)
             {

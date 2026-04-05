@@ -50,6 +50,7 @@ namespace DeepAgentNet.FileSystems
                 : _options.LsIgnorePatterns;
 
             var searchOption = recursive ? SearchOption.AllDirectories : SearchOption.TopDirectoryOnly;
+            int count = 0;
 
             foreach (var entry in directoryInfo.EnumerateDirectories("*", searchOption))
             {
@@ -65,6 +66,9 @@ namespace DeepAgentNet.FileSystems
                     IsDirectory: true,
                     Size: 0,
                     ModifiedAt: entry.LastWriteTime);
+
+                if (++count % 100 == 0)
+                    await Task.Yield();
             }
 
             foreach (var entry in directoryInfo.EnumerateFiles("*", searchOption))
@@ -81,6 +85,9 @@ namespace DeepAgentNet.FileSystems
                     IsDirectory: false,
                     Size: entry.Length,
                     ModifiedAt: entry.LastWriteTime);
+
+                if (++count % 100 == 0)
+                    await Task.Yield();
             }
 
             static bool IsIgnored(string relativePath, string[] patterns)
@@ -224,7 +231,7 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
-        public async ValueTask<List<FileSystemInfo>> GlobInfoAsync(string pattern, string? path = null, CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<FileSystemInfo> GlobInfoAsync(string pattern, string? path = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(path ?? ".");
             _logger?.ExecutingGlob(pattern, fullPath);
@@ -232,36 +239,28 @@ namespace DeepAgentNet.FileSystems
             DirectoryInfo directoryInfo = new(fullPath);
 
             if (!directoryInfo.Exists)
-            {
-                return [];
-            }
+                yield break;
 
             Matcher matcher = new Matcher().AddInclude(pattern);
             DirectoryInfoWrapper directoryInfoWrapper = new(directoryInfo);
             PatternMatchingResult result = matcher.Execute(directoryInfoWrapper);
 
-            Task<List<FileSystemInfo>> task = Task.Factory.StartNew(() =>
+            int count = 0;
+            foreach (var match in result.Files)
             {
-                List<FileSystemInfo> fileSystemInfos = new();
+                cancellationToken.ThrowIfCancellationRequested();
 
-                foreach (var match in result.Files)
-                {
-                    cancellationToken.ThrowIfCancellationRequested();
+                FileInfo fileInfo = new(Path.Combine(fullPath, match.Path));
 
-                    FileInfo fileInfo = new(Path.Combine(fullPath, match.Path));
+                yield return new FileSystemInfo(
+                    Path: match.Path,
+                    IsDirectory: false,
+                    Size: fileInfo.Length,
+                    ModifiedAt: fileInfo.LastWriteTime);
 
-                    fileSystemInfos.Add(new FileSystemInfo(
-                        Path: match.Path,
-                        IsDirectory: false,
-                        Size: fileInfo.Length,
-                        ModifiedAt: fileInfo.LastWriteTime
-                    ));
-                }
-
-                return fileSystemInfos;
-            }, cancellationToken, TaskCreationOptions.LongRunning, TaskScheduler.Default);
-
-            return await task.ConfigureAwait(false);
+                if (++count % 100 == 0)
+                    await Task.Yield();
+            }
         }
 
         public async ValueTask WriteAsync(string filePath, string content, CancellationToken cancellationToken = default)

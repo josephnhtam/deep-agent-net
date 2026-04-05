@@ -22,7 +22,7 @@ namespace DeepAgentNet.FileSystems
             You have access to a filesystem which you can interact with using these tools.
             All file paths must start with a /.
 
-            - ls: list files in a directory (requires absolute path)
+            - ls: list files and directories in a path (supports recursive listing)
             - read_file: read a file from the filesystem
             - write_file: write to a file in the filesystem
             - edit_file: edit a file in the filesystem
@@ -32,10 +32,10 @@ namespace DeepAgentNet.FileSystems
             """;
 
         public const string LsToolDescription = """
-            Lists files and directories recursively in a given path (up to 100 files).
-            Returns a tree view of the directory structure. Common directories like
-            node_modules, .git, dist, build, etc. are automatically excluded.
+            Lists files and directories in a given path. Directories are listed first, then files.
+            Common directories like node_modules, .git, dist, build, etc. are automatically excluded.
             You can optionally provide an array of patterns to ignore with the ignore parameter.
+            Set recursive=true to list all contents recursively.
 
             This is useful for exploring the filesystem and finding the right file to read or edit.
             You should almost ALWAYS use this tool before using the read_file or edit_file tools.
