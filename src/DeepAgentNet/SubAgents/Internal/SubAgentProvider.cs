@@ -56,6 +56,7 @@ namespace DeepAgentNet.SubAgents.Internal
                 {
                     ChatClientAgentOptions agentOptions = defaultOptions.DefaultOptions.Clone();
 
+                    agentOptions.Id = $"general-purpose:{Guid.NewGuid().ToString("N")}";
                     agentOptions.ChatOptions = agentOptions.ChatOptions?.Clone() ?? new ChatOptions();
                     agentOptions.ChatOptions.Instructions = options.GeneralPurposeAgent.SystemPrompt ?? SubAgentDefaults.GeneralPurposeAgentSystemPrompt;
 
