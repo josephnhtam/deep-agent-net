@@ -52,7 +52,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
                 bool hasEntries = false;
 
-                await foreach (var info in _access.GlobInfoAsync(pattern, path, cancellationToken).ConfigureAwait(false))
+                await foreach (FileSystemInfo info in _access.GlobInfoAsync(pattern, path, cancellationToken).ConfigureAwait(false))
                 {
                     hasEntries = true;
 

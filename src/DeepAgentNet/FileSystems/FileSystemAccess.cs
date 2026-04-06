@@ -359,20 +359,40 @@ namespace DeepAgentNet.FileSystems
                 if (string.IsNullOrEmpty(oldString))
                     throw new ArgumentException("OldString cannot be empty when file has content", nameof(oldString));
 
-                int occurrences = content.AsSpan().Count(oldString);
+                bool hasCRLF = content.Contains("\r\n");
+                string normalized = hasCRLF ? content.Replace("\r\n", "\n") : content;
+                string normalizedOld = hasCRLF ? oldString.Replace("\r\n", "\n") : oldString;
+                string normalizedNew = hasCRLF ? newString.Replace("\r\n", "\n") : newString;
+
+                int occurrences = normalized.AsSpan().Count(normalizedOld);
 
                 if (occurrences == 0)
-                    throw new ArgumentException($"String not found in file: '{oldString}'", nameof(oldString));
+                {
+                    string truncated = oldString.Length > 200 ? oldString[..200] + "..." : oldString;
+                    throw new ArgumentException($"String to replace not found in file.\nString: {truncated}", nameof(oldString));
+                }
 
                 if (occurrences > 1 && !replaceAll)
                 {
+                    string truncated = oldString.Length > 200 ? oldString[..200] + "..." : oldString;
                     throw new ArgumentException(
-                        $"String '{oldString}' has multiple occurrences (appears {occurrences} times) in file. " +
-                        "Use replaceAll=true to replace all instances, or provide a more specific string with surrounding context.",
+                        $"Found {occurrences} matches of the string to replace, but replaceAll is false. " +
+                        "To replace all occurrences, set replaceAll to true. " +
+                        $"To replace only one occurrence, please provide more context to uniquely identify the instance.\nString: {truncated}",
                         nameof(replaceAll));
                 }
 
-                return (content.Replace(oldString, newString), occurrences);
+                bool stripTrailingNewline = string.IsNullOrEmpty(normalizedNew)
+                    && !normalizedOld.EndsWith('\n')
+                    && normalized.Contains(normalizedOld + "\n");
+
+                string searchString = stripTrailingNewline ? normalizedOld + "\n" : normalizedOld;
+                string result = normalized.Replace(searchString, normalizedNew);
+
+                if (hasCRLF)
+                    result = result.Replace("\n", "\r\n");
+
+                return (result, occurrences);
             }
         }
 
@@ -399,6 +419,13 @@ namespace DeepAgentNet.FileSystems
                 _logger?.FailedToDeleteFile(ex, fullPath);
                 throw;
             }
+        }
+
+        public DateTime? GetLastWriteTimeUtc(string filePath)
+        {
+            string fullPath = ResolveFullPath(filePath);
+            FileInfo fileInfo = new(fullPath);
+            return fileInfo.Exists ? fileInfo.LastWriteTimeUtc : null;
         }
 
         private async IAsyncEnumerable<string> ReadLineAsync(string fullPath, [EnumeratorCancellation] CancellationToken cancellationToken)

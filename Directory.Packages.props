@@ -3,7 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0-rc4" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.0.0" />
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.5" />
   </ItemGroup>
 </Project>

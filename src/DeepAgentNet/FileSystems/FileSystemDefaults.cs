@@ -24,7 +24,7 @@ namespace DeepAgentNet.FileSystems
             You have access to a filesystem which you can interact with using these tools.
             All file paths must start with a /.
 
-            When reading files, results are returned using cat -n format, with line numbers starting at 1. Treat the line number prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
+            When reading files, results are returned with each line prefixed by a padded line number followed by an arrow (→), starting at 1. The line number prefix format is: spaces + line number + arrow (→). Treat the line number prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
 
             - ls: list files and directories in a path (supports recursive listing)
             - read_file: read a file from the filesystem
@@ -56,7 +56,7 @@ namespace DeepAgentNet.FileSystems
             - The offset parameter is the line number to start from (0-indexed).
             - To read later sections, call this tool again with a larger offset.
             - Use the grep tool to find specific content in large files.
-            - Results are returned using cat -n format, with line numbers starting at 1.
+            - Results are returned with each line prefixed by its line number and an arrow (→). The line number prefix is metadata, not file content.
             - You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
             - You should ALWAYS make sure a file has been read before editing it.
             """;
@@ -66,6 +66,7 @@ namespace DeepAgentNet.FileSystems
 
             Usage:
             - The write_file tool will create a new file.
+            - You must list the parent directory (or an ancestor directory recursively) with ls before writing a new file. This tool will error if the parent directory has not been explored first.
             - Prefer to edit existing files (with the edit_file tool) over creating new ones when possible.
             """;
 
@@ -80,14 +81,28 @@ namespace DeepAgentNet.FileSystems
             """;
 
         public const string EditFileToolDescription = """
-            Performs exact string replacements in files.
+            Performs exact string replacements in files. oldString is matched verbatim in the file and replaced with newString. Only the matched portion is affected.
 
-            Usage:
-            - You must read the file before editing. This tool will error if you attempt an edit without reading the file first.
-            - CRITICAL: The read_file output prefixes every line with its line number in cat -n format. These prefixes are metadata, NOT part of the file. You must NEVER include line number prefixes in old_string or new_string. Only use the actual file content that appears after the line number prefix.
-            - Preserve the exact indentation (tabs/spaces) as it appears in the actual file content (after the line number prefix).
-            - ALWAYS prefer editing existing files over creating new ones.
-            - Only use emojis if the user explicitly requests it.
+            Rules:
+            - You must read the file with read_file before editing. Edits will be rejected if the file has not been read first.
+            - The read_file output prefixes each line with a line number and arrow (→). These prefixes are NOT part of the file content. Never include them in oldString or newString. Preserve the exact indentation (tabs/spaces) as it appears after the prefix.
+            - oldString must match the file content exactly and must be unique in the file. If it is not unique, provide more surrounding lines as context to make it unique, or set replaceAll=true.
+            - oldString should be 2-5 adjacent lines — enough to uniquely identify the location. Avoid overly large context (10+ lines) when fewer lines suffice.
+            - To delete code, oldString must contain the ENTIRE block being removed (not just the first line), and newString should be empty.
+            - Use replaceAll=true when renaming a variable or replacing a short string across the entire file.
+            - Prefer editing existing files over creating new ones.
+
+            Examples:
+            - Replace a function's body (oldString includes all lines being changed):
+                oldString: "function greet() {\n    return 'hello';\n}"
+                newString: "function greet() {\n    return 'hi';\n}"
+            - Delete an entire function (oldString must cover the full function, not just its first line):
+                oldString: "function unused() {\n    doStuff();\n    return;\n}"
+                newString: ""
+            - Rename a variable everywhere in the file:
+                oldString: "oldVar"
+                newString: "newVar"
+                replaceAll: true
             """;
 
         public const string DeleteFileToolDescription = """

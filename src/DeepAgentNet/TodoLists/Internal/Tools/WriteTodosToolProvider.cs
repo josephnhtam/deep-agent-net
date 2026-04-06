@@ -58,7 +58,7 @@ namespace DeepAgentNet.TodoLists.Internal.Tools
             if (session is null)
                 return;
 
-            session.StateBag.SetValue(TodoListChatClient.KeyTodoListState, new TodoListState(
+            session.StateBag.SetValue(TodoListState.StateBagKey, new TodoListState(
                 CurrentTurns: 0,
                 Todos: todos
             ));

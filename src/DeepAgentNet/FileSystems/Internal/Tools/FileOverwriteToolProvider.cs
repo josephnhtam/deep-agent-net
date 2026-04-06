@@ -9,12 +9,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     public class FileOverwriteToolProvider : IToolProvider
     {
         private readonly IFileSystemAccess _access;
+        private readonly FileLocks _fileLocks;
 
         public AITool Tool { get; }
 
-        public FileOverwriteToolProvider(IFileSystemAccess access, ToolOptions options)
+        internal FileOverwriteToolProvider(IFileSystemAccess access, ToolOptions options, FileLocks fileLocks)
         {
             _access = access;
+            _fileLocks = fileLocks;
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -33,14 +35,23 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             string content,
             CancellationToken cancellationToken = default)
         {
-            try
+            using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
-                await _access.OverwriteAsync(filePath, content, cancellationToken).ConfigureAwait(false);
-                return $"Successfully overwrote '{filePath}'";
-            }
-            catch (Exception ex)
-            {
-                return $"Error: {ex.Message}";
+                string? validationError = FileToolGuards.ValidateReadState(filePath, _access);
+
+                if (validationError is not null)
+                    return validationError;
+
+                try
+                {
+                    await _access.OverwriteAsync(filePath, content, cancellationToken).ConfigureAwait(false);
+                    FileToolGuards.UpdateReadState(filePath, _access);
+                    return $"Successfully overwrote '{filePath}'";
+                }
+                catch (Exception ex)
+                {
+                    return $"Error: {ex.Message}";
+                }
             }
         }
     }

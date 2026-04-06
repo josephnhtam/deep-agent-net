@@ -109,9 +109,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 response = updates.ToAgentResponse();
                 await subAgent.Handle.ReceiveResponseAsync(agent.Id, response, cancellationToken).ConfigureAwait(false);
 
-                List<Task<FunctionApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
-                    .OfType<FunctionApprovalRequestContent>()
-                    .Select(c => subAgent.Handle.ApproveFunctionCallAsync(agent.Id, c, cancellationToken))
+                List<Task<ToolApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
+                    .OfType<ToolApprovalRequestContent>()
+                    .Select(c => subAgent.Handle.ApproveToolCallAsync(agent.Id, c, cancellationToken))
                     .ToList();
 
                 HashSet<string> completedCallIds = response.Messages.SelectMany(m => m.Contents)

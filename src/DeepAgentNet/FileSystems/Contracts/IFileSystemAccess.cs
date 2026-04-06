@@ -10,6 +10,7 @@ namespace DeepAgentNet.FileSystems.Contracts
         ValueTask OverwriteAsync(string filePath, string content, CancellationToken cancellationToken = default);
         ValueTask<EditResult> EditAsync(string filePath, string oldString, string newString, bool replaceAll = false, CancellationToken cancellationToken = default);
         ValueTask DeleteAsync(string filePath, CancellationToken cancellationToken = default);
+        DateTime? GetLastWriteTimeUtc(string filePath);
     }
 
     public record struct FileSystemInfo(string Path, bool IsDirectory, long Size, DateTime ModifiedAt);

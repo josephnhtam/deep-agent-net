@@ -9,12 +9,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     public class FileWriteToolProvider : IToolProvider
     {
         private readonly IFileSystemAccess _access;
+        private readonly FileLocks _fileLocks;
 
         public AITool Tool { get; }
 
-        public FileWriteToolProvider(IFileSystemAccess access, ToolOptions options)
+        internal FileWriteToolProvider(IFileSystemAccess access, ToolOptions options, FileLocks fileLocks)
         {
             _access = access;
+            _fileLocks = fileLocks;
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -33,14 +35,22 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             string content,
             CancellationToken cancellationToken = default)
         {
-            try
+            using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
-                await _access.WriteAsync(filePath, content, cancellationToken).ConfigureAwait(false);
-                return $"Successfully wrote to '{filePath}'";
-            }
-            catch (Exception ex)
-            {
-                return $"Error: {ex.Message}";
+                string? validationError = FileToolGuards.ValidateLsState(filePath);
+
+                if (validationError is not null)
+                    return validationError;
+
+                try
+                {
+                    await _access.WriteAsync(filePath, content, cancellationToken).ConfigureAwait(false);
+                    return $"Successfully wrote to '{filePath}'";
+                }
+                catch (Exception ex)
+                {
+                    return $"Error: {ex.Message}";
+                }
             }
         }
     }

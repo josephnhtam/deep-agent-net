@@ -13,11 +13,13 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             _options = options;
 
+            FileLocks fileLocks = new();
+
             ListInfoToolProvider listInfoToolProvider = new(options.Access, options.LsToolOptions);
             FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions);
-            FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions);
-            FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions);
-            FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions);
+            FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions, fileLocks);
+            FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions, fileLocks);
+            FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions, fileLocks);
             FileDeleteToolProvider fileDeleteToolProvider = new(options.Access, options.DeleteFileToolOptions);
             GlobToolProvider globToolProvider = new(options.Access, options.GlobToolOptions);
             GrepToolProvider grepToolProvider = new(options.Access, options.GrepToolOptions);

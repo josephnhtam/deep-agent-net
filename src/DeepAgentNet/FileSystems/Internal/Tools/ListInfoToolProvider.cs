@@ -1,4 +1,6 @@
+using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
+using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.Shared.Internal;
@@ -51,11 +53,18 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                     new StandardStringBuilder();
 
                 bool hasEntries = false;
+                string basePath = path.TrimEnd('/');
+                LsState? lsState = GetOrCreateLsState();
+
+                lsState?.Record(basePath);
 
                 await foreach (FileSystemInfo info in
                     _access.ListInfoAsync(path, recursive, cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
                     hasEntries = true;
+
+                    if (info.IsDirectory)
+                        lsState?.Record(Path.Combine(basePath, info.Path));
 
                     string line = info switch
                     {
@@ -74,6 +83,22 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             {
                 return $"Error: {ex.Message}";
             }
+        }
+
+        private static LsState? GetOrCreateLsState()
+        {
+            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
+            if (session is null)
+                return null;
+
+            var state = session.StateBag.GetValue<LsState>(LsState.StateBagKey);
+            if (state is null)
+            {
+                state = new LsState();
+                session.StateBag.SetValue(LsState.StateBagKey, state);
+            }
+
+            return state;
         }
     }
 }

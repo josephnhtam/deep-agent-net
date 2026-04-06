@@ -1,4 +1,6 @@
+using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
+using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.Shared.Internal;
@@ -66,6 +68,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 int startLine = offset + 1;
                 string content = sb.ToString();
 
+                RecordFileRead(filePath);
+
                 return new Result
                 {
                     FilePath = filePath,
@@ -85,6 +89,23 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             }
         }
 
+        private void RecordFileRead(string filePath)
+        {
+            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
+            if (session is null)
+                return;
+
+            var state = session.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            if (state is null)
+            {
+                state = new FileReadState();
+                session.StateBag.SetValue(FileReadState.StateBagKey, state);
+            }
+
+            DateTime lastWriteTime = _access.GetLastWriteTimeUtc(filePath) ?? DateTime.UtcNow;
+            state.RecordRead(filePath, lastWriteTime);
+        }
+
         private record Result
         {
             [Description("Path to the file that was read")]
@@ -93,7 +114,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             [Description("The error message if an error occurred, otherwise null")]
             public string? Error { get; init; }
 
-            [Description("The content of the file, each line prefixed with its line number in cat -n format")]
+            [Description("The content of the file, each line prefixed with its line number and an arrow (→)")]
             public string? Content { get; init; }
 
             [Description("The number of lines returned in Content (not including truncation)")]

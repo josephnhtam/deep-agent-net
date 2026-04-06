@@ -10,8 +10,6 @@ namespace DeepAgentNet.TodoLists.Internal
     {
         private readonly int _reminderTurnThreshold;
 
-        public const string KeyTodoListState = "TodoListChatClient.TodoListState";
-
         internal TodoListChatClient(IChatClient innerClient, TodoListProviderOptions? options) : base(innerClient)
         {
             _reminderTurnThreshold = options?.ReminderTurnThreshold
@@ -92,11 +90,11 @@ namespace DeepAgentNet.TodoLists.Internal
             if (session is null)
                 return;
 
-            TodoListState? state = session.StateBag.GetValue<TodoListState>(KeyTodoListState);
+            TodoListState? state = session.StateBag.GetValue<TodoListState>(TodoListState.StateBagKey);
             if (state is null)
                 return;
 
-            session.StateBag.SetValue(KeyTodoListState, state with
+            session.StateBag.SetValue(TodoListState.StateBagKey, state with
             {
                 CurrentTurns = state.CurrentTurns + 1
             });
@@ -105,7 +103,7 @@ namespace DeepAgentNet.TodoLists.Internal
         private static TodoListState? GetTodoListState(ChatOptions? options)
         {
             AgentSession? session = options.GetSession();
-            return session?.StateBag.GetValue<TodoListState>(KeyTodoListState);
+            return session?.StateBag.GetValue<TodoListState>(TodoListState.StateBagKey);
         }
     }
 }
