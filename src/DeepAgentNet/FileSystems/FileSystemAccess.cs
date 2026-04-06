@@ -35,7 +35,8 @@ namespace DeepAgentNet.FileSystems
             return fullPath;
         }
 
-        public async IAsyncEnumerable<FileSystemInfo> ListInfoAsync(string path, bool recursive = false, string[]? ignore = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<FileSystemInfo> ListInfoAsync(
+            string path, bool recursive = false, string[]? ignore = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(path);
             _logger?.ListingDirectoryInfo(fullPath);
@@ -103,7 +104,8 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
-        public async IAsyncEnumerable<string> ReadAsync(string filePath, int offset = 0, int? limit = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<string> ReadAsync(
+            string filePath, int offset = 0, int? limit = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (limit <= 0)
                 yield break;
@@ -134,7 +136,8 @@ namespace DeepAgentNet.FileSystems
                 throw new IndexOutOfRangeException($"Line offset {offset} exceeds file length ({current} lines)");
         }
 
-        public async ValueTask<List<GrepMatch>> GrepAsync(string pattern, string? dirPath = null, string? glob = null, bool isRegex = false, CancellationToken cancellationToken = default)
+        public async ValueTask<List<GrepMatch>> GrepAsync(
+            string pattern, string? dirPath = null, string? glob = null, bool isRegex = false, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(dirPath ?? ".");
             _logger?.ExecutingGrep(pattern, fullPath, glob ?? "*");
@@ -212,7 +215,8 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
-        public async IAsyncEnumerable<FileSystemInfo> GlobInfoAsync(string pattern, string? path = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<FileSystemInfo> GlobInfoAsync(
+            string pattern, string? path = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(path ?? ".");
             _logger?.ExecutingGlob(pattern, fullPath);
@@ -309,7 +313,8 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
-        public async ValueTask<EditResult> EditAsync(string filePath, string oldString, string newString, bool replaceAll = false, CancellationToken cancellationToken = default)
+        public async ValueTask<EditResult> EditAsync(
+            string filePath, string oldString, string newString, bool replaceAll = false, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(filePath);
             _logger?.AttemptingToEditFile(fullPath);
@@ -488,7 +493,6 @@ namespace DeepAgentNet.FileSystems
     {
         public bool RestrictToRoot { get; init; } = true;
         public long MaxGrepFileBytesSize { get; init; } = 10_000_000;
-        public int? MaxLineLength { get; init; } = null;
         public int GrepParallelism { get; init; } = Environment.ProcessorCount;
         public string[] LsIgnorePatterns { get; init; } =
         [
