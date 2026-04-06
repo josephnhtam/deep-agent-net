@@ -30,7 +30,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
-        private async ValueTask<string> ExecuteAsync(
+        private async ValueTask<Result> ExecuteAsync(
             [Description("Path to the file to read")]
             string filePath,
             [Description("Line offset to start reading from (0-indexed)")]
@@ -42,50 +42,68 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             try
             {
                 TruncatingStringBuilder? truncatingBuilder = _options.ResultTokenLimit.HasValue
-                    ? new TruncatingStringBuilder(
-                        _options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken,
-                        SharedConstants.TruncationGuidance)
+                    ? new TruncatingStringBuilder(_options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken)
                     : null;
 
                 IStringBuilder sb = truncatingBuilder ?? (IStringBuilder)new StandardStringBuilder();
 
                 int linesRead = 0;
-                bool hasMore = false;
+                int totalLines = offset;
 
-                await foreach (string line in _access.ReadAsync(filePath, offset, limit + 1, cancellationToken).ConfigureAwait(false))
+                await foreach (string line in _access.ReadAsync(filePath, offset, null, cancellationToken).ConfigureAwait(false))
                 {
-                    if (linesRead >= limit)
+                    totalLines++;
+
+                    string lineNum = totalLines.ToString();
+                    string prefix = lineNum.Length >= 6 ? lineNum : lineNum.PadLeft(6);
+
+                    if (linesRead < limit && sb.AppendLine($"{prefix}\u2192{line}"))
                     {
-                        hasMore = true;
-                        break;
+                        linesRead++;
                     }
-
-                    if (!sb.AppendLine(line))
-                        break;
-
-                    linesRead++;
                 }
 
-                if (linesRead == 0 && offset == 0)
-                    return "[System: This file exists but has empty contents]";
-
-                bool tokenTruncated = truncatingBuilder?.IsTruncated ?? false;
                 int startLine = offset + 1;
-                int endLine = offset + linesRead;
+                string content = sb.ToString();
 
-                string result = sb.ToString();
-
-                if (tokenTruncated || hasMore)
-                    result += $"\n\n(Showing lines {startLine}-{endLine}. Use offset={endLine} to continue reading.)";
-                else
-                    result += $"\n\n(End of file. Showing lines {startLine}-{endLine})";
-
-                return result;
+                return new Result
+                {
+                    FilePath = filePath,
+                    Content = content,
+                    NumLines = linesRead,
+                    StartLine = startLine,
+                    TotalLines = totalLines
+                };
             }
             catch (Exception ex)
             {
-                return $"Error: {ex.Message}";
+                return new Result
+                {
+                    FilePath = filePath,
+                    Error = ex.Message
+                };
             }
+        }
+
+        private record Result
+        {
+            [Description("Path to the file that was read")]
+            public required string FilePath { get; init; }
+
+            [Description("The error message if an error occurred, otherwise null")]
+            public string? Error { get; init; }
+
+            [Description("The content of the file, each line prefixed with its line number in cat -n format")]
+            public string? Content { get; init; }
+
+            [Description("The number of lines returned in Content (not including truncation)")]
+            public int? NumLines { get; init; }
+
+            [Description("The line number that was read from in the file (1-indexed)")]
+            public int? StartLine { get; init; }
+
+            [Description("The total number of lines in the file")]
+            public int? TotalLines { get; init; }
         }
     }
 }

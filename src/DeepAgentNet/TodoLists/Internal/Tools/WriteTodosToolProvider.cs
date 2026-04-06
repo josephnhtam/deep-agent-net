@@ -1,4 +1,7 @@
+using DeepAgentNet.Agents;
+using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.Shared.Contracts;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 using System.Text.Json;
@@ -25,23 +28,40 @@ namespace DeepAgentNet.TodoLists.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("List of todo items to update")]
+            [Description("The complete updated todo list, including all items and their current statuses")]
             List<Todo> todos,
             AIFunctionArguments arguments,
             CancellationToken cancellation)
         {
-            if (arguments.TryGetValue(TodoListDefaults.KeyDuplicate, out object? duplicate) && duplicate is true)
-            {
-                return $"Error: The `{TodoListDefaults.ToolName}` tool should never be called multiple times " +
-                    "in parallel. Please call it only once per model invocation to update the todo list.";
-            }
-
             if (_onTodosUpdatedAsync is not null)
             {
                 await _onTodosUpdatedAsync(_agentId, todos, cancellation).ConfigureAwait(false);
             }
 
-            return $"Updated todo list to {JsonSerializer.Serialize(todos, AIJsonUtilities.DefaultOptions)}";
+            UpdateSessionTodoList(todos);
+
+            return $"""
+                Todo list has been updated successfully to 
+                ```json 
+                {JsonSerializer.Serialize(todos)}
+                ```
+
+                Ensure that you continue to use the todo list to track your progress.
+                Please proceed with the current tasks if applicable."
+                """;
+        }
+
+        private static void UpdateSessionTodoList(List<Todo> todos)
+        {
+            AgentSession? session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
+
+            if (session is null)
+                return;
+
+            session.StateBag.SetValue(TodoListChatClient.KeyTodoListState, new TodoListState(
+                CurrentTurns: 0,
+                Todos: todos
+            ));
         }
     }
 }

@@ -4,7 +4,7 @@ namespace DeepAgentNet.TodoLists
     {
         public const string ToolName = "write_todos";
 
-        public const string KeyDuplicate = "duplicate";
+        public const int DefaultReminderTurnThreshold = 5;
 
         public const string SystemPrompt = $"""
             ## `{ToolName}`

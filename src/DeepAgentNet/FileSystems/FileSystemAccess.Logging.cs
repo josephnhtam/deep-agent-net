@@ -10,8 +10,8 @@ namespace DeepAgentNet.FileSystems
         [LoggerMessage(LogLevel.Information, "Listing directory info for: {Path}")]
         public static partial void ListingDirectoryInfo(this ILogger<FileSystemAccess> logger, string path);
 
-        [LoggerMessage(LogLevel.Debug, "Reading file {Path} (Offset: {Offset}, Limit: {Limit})")]
-        public static partial void ReadingFile(this ILogger<FileSystemAccess> logger, string path, int offset, int limit);
+        [LoggerMessage(LogLevel.Debug, "Reading file {Path} (Offset: {Offset} Limit: {Limit})")]
+        public static partial void ReadingFile(this ILogger<FileSystemAccess> logger, string path, int offset, int? limit);
 
         [LoggerMessage(LogLevel.Debug, "Reading raw file {Path}")]
         public static partial void ReadingRawFile(this ILogger<FileSystemAccess> logger, string path);

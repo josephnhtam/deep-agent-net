@@ -7,5 +7,6 @@ namespace DeepAgentNet.TodoLists
         public string? SystemPrompt { get; init; }
         public string? ToolDescription { get; init; }
         public OnTodosUpdatedAsync? OnTodosUpdatedAsync { get; init; }
+        public int? ReminderTurnThreshold { get; init; }
     }
 }

@@ -29,7 +29,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         private async ValueTask<string> ExecuteAsync(
             [Description("Path to the file to edit")]
             string filePath,
-            [Description("String to be replaced (must match exactly)")]
+            [Description("String to be replaced (must match raw content exactly)")]
             string oldString,
             [Description("String to replace with")]
             string newString,

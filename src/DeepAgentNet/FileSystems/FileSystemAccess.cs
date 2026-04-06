@@ -103,7 +103,7 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
-        public async IAsyncEnumerable<string> ReadAsync(string filePath, int offset = 0, int limit = 500, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        public async IAsyncEnumerable<string> ReadAsync(string filePath, int offset = 0, int? limit = null, [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
             if (limit <= 0)
                 yield break;
@@ -111,12 +111,10 @@ namespace DeepAgentNet.FileSystems
             string fullPath = ResolveFullPath(filePath);
             _logger?.ReadingFile(fullPath, offset, limit);
 
-            int? maxLineLength = _options.MaxLineLength;
             var (current, total) = (0, 0);
-
             await foreach (string line in ReadLineAsync(fullPath, cancellationToken).ConfigureAwait(false))
             {
-                if (current >= offset + limit)
+                if (limit.HasValue && current >= offset + limit)
                     break;
 
                 if (current < offset)
@@ -126,26 +124,7 @@ namespace DeepAgentNet.FileSystems
                     continue;
                 }
 
-                int lineNumber = current + 1;
-
-                if (maxLineLength == null || line.Length <= maxLineLength.Value)
-                {
-                    yield return $"#{lineNumber}:{line}";
-                }
-                else
-                {
-                    int numChunks = (int)Math.Ceiling((double)line.Length / maxLineLength.Value);
-
-                    for (int chunkIdx = 0; chunkIdx < numChunks; chunkIdx++)
-                    {
-                        int start = chunkIdx * maxLineLength.Value;
-                        int length = Math.Min(maxLineLength.Value, line.Length - start);
-                        string chunk = line.Substring(start, length);
-                        string marker = chunkIdx == 0 ? $"{lineNumber}" : $"{lineNumber}.{chunkIdx}";
-
-                        yield return $"#{marker}:{chunk}";
-                    }
-                }
+                yield return line;
 
                 current++;
                 total++;

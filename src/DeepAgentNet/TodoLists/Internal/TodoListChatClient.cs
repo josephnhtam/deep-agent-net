@@ -1,70 +1,111 @@
+using DeepAgentNet.Agents.Internal;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 
 namespace DeepAgentNet.TodoLists.Internal
 {
     internal class TodoListChatClient : DelegatingChatClient
     {
-        private readonly TodoListProviderOptions? _options;
+        private readonly int _reminderTurnThreshold;
+
+        public const string KeyTodoListState = "TodoListChatClient.TodoListState";
 
         internal TodoListChatClient(IChatClient innerClient, TodoListProviderOptions? options) : base(innerClient)
         {
-            _options = options;
+            _reminderTurnThreshold = options?.ReminderTurnThreshold
+                ?? TodoListDefaults.DefaultReminderTurnThreshold;
         }
 
-        public override async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = new CancellationToken())
+        public override async Task<ChatResponse> GetResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+            CancellationToken cancellationToken = default)
         {
-            ChatResponse response = await base.GetResponseAsync(messages, options, cancellationToken).ConfigureAwait(false);
+            messages = TryInjectTodoReminder(messages, options);
 
-            List<FunctionCallContent> todosWrites = response.Messages.SelectMany(m => m.Contents)
-                .OfType<FunctionCallContent>()
-                .Where(c => c.Name == TodoListDefaults.ToolName)
-                .ToList();
+            ChatResponse response = await base.GetResponseAsync(messages, options, cancellationToken)
+                .ConfigureAwait(false);
 
-            if (todosWrites.Count <= 1)
-                return response;
-
-            foreach (FunctionCallContent todosWrite in todosWrites)
-            {
-                todosWrite.Arguments ??= new Dictionary<string, object?>();
-                todosWrite.Arguments[TodoListDefaults.KeyDuplicate] = true;
-            }
+            IncrementTurnCounter(options);
 
             return response;
         }
 
-        public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = new CancellationToken())
+        public override async IAsyncEnumerable<ChatResponseUpdate> GetStreamingResponseAsync(
+            IEnumerable<ChatMessage> messages, ChatOptions? options = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            List<ChatResponseUpdate> todosWriteUpdates = new();
+            messages = TryInjectTodoReminder(messages, options);
 
             await foreach (ChatResponseUpdate update in
                 base.GetStreamingResponseAsync(messages, options, cancellationToken).ConfigureAwait(false))
             {
-                if (update.Contents.OfType<FunctionCallContent>().Any(c => c.Name == TodoListDefaults.ToolName) != true)
-                {
-                    todosWriteUpdates.Add(update);
-                    continue;
-                }
-
                 yield return update;
             }
 
-            if (todosWriteUpdates.Count > 1)
-            {
-                IEnumerable<FunctionCallContent> todosWrites = todosWriteUpdates.SelectMany(u => u.Contents)
-                    .OfType<FunctionCallContent>()
-                    .Where(c => c.Name == TodoListDefaults.ToolName);
+            IncrementTurnCounter(options);
+        }
 
-                foreach (FunctionCallContent todosWrite in todosWrites)
-                {
-                    todosWrite.Arguments ??= new Dictionary<string, object?>();
-                    todosWrite.Arguments[TodoListDefaults.KeyDuplicate] = true;
-                }
-            }
+        private IEnumerable<ChatMessage> TryInjectTodoReminder(
+            IEnumerable<ChatMessage> messages, ChatOptions? options)
+        {
+            if (_reminderTurnThreshold <= 0)
+                return messages;
 
-            foreach (ChatResponseUpdate update in todosWriteUpdates)
+            TodoListState? state = GetTodoListState(options);
+
+            if (state is null || state.CurrentTurns < _reminderTurnThreshold || state.Todos.Count == 0)
+                return messages;
+
+            bool hasActiveTodos = state.Todos.Any(t =>
+                t.Status is TodoStatus.Pending or TodoStatus.InProgress);
+
+            if (!hasActiveTodos)
+                return messages;
+
+            List<ChatMessage> messageList = messages as List<ChatMessage> ?? messages.ToList();
+            messageList.Add(new ChatMessage(ChatRole.User, BuildReminderMessage(state.Todos)));
+            return messageList;
+        }
+
+        private static string BuildReminderMessage(IReadOnlyList<Todo> todos)
+        {
+            return $"""
+                The `{TodoListDefaults.ToolName}` tool hasn't been used recently.
+
+                Here are the existing contents of your todo list:
+                ```json 
+                {JsonSerializer.Serialize(todos)}
+                ```
+
+                Consider using the `{TodoListDefaults.ToolName}` tool to update your progress.
+                Make sure to preserve the status of previously completed items.
+                Only use it if it's relevant to the current work.
+                This is just a gentle reminder, ignore if not applicable.
+                """;
+        }
+
+        private static void IncrementTurnCounter(ChatOptions? options)
+        {
+            AgentSession? session = options.GetSession();
+            if (session is null)
+                return;
+
+            TodoListState? state = session.StateBag.GetValue<TodoListState>(KeyTodoListState);
+            if (state is null)
+                return;
+
+            session.StateBag.SetValue(KeyTodoListState, state with
             {
-                yield return update;
-            }
+                CurrentTurns = state.CurrentTurns + 1
+            });
+        }
+
+        private static TodoListState? GetTodoListState(ChatOptions? options)
+        {
+            AgentSession? session = options.GetSession();
+            return session?.StateBag.GetValue<TodoListState>(KeyTodoListState);
         }
     }
 }

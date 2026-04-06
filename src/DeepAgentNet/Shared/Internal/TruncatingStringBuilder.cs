@@ -7,12 +7,12 @@ namespace DeepAgentNet.Shared.Internal
     {
         private readonly StringBuilder _sb;
         private readonly int _maxLength;
-        private readonly string _truncationMessage;
+        private readonly string? _truncationMessage;
         private readonly int _newLineLength;
 
         public bool IsTruncated { get; private set; }
 
-        public TruncatingStringBuilder(int maxLength, string truncationMessage)
+        public TruncatingStringBuilder(int maxLength, string? truncationMessage = null)
         {
             _sb = new StringBuilder();
             _maxLength = maxLength;
@@ -47,7 +47,9 @@ namespace DeepAgentNet.Shared.Internal
 
             if (_sb.Length + value.Length > _maxLength)
             {
-                _sb.AppendLine(_truncationMessage);
+                if (!string.IsNullOrEmpty(_truncationMessage))
+                    _sb.AppendLine(_truncationMessage);
+
                 IsTruncated = true;
                 return false;
             }

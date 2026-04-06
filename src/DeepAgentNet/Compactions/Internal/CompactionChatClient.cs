@@ -1,4 +1,4 @@
-using DeepAgentNet.Agents;
+using DeepAgentNet.Agents.Internal;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
@@ -39,17 +39,14 @@ namespace DeepAgentNet.Compactions.Internal
         private async Task<(IEnumerable<ChatMessage> messages, ChatOptions? options)> ProcessCompactionAsync(
             IEnumerable<ChatMessage> messages, ChatOptions? options, CancellationToken cancellationToken)
         {
-            if (options?.AdditionalProperties?.TryGetValue(DeepAgent.KeyAgent, out var agentValue) != true ||
-                agentValue is not AIAgent agent)
-            {
+            if (options is null)
                 return (messages, options);
-            }
 
-            if (options?.AdditionalProperties?.TryGetValue(DeepAgent.KeySession, out var sessionValue) != true ||
-                sessionValue is not AgentSession session)
-            {
+            AIAgent? agent = options.GetAgent();
+            AgentSession? session = options.GetSession();
+
+            if (agent is null || session is null)
                 return (messages, options);
-            }
 
             AIContextProvider.InvokingContext compactionInvokingContext = new(
                 agent, session, new AIContext
@@ -66,15 +63,13 @@ namespace DeepAgentNet.Compactions.Internal
             messages = aiContext.Messages ?? [];
 
             var tools = aiContext.Tools as IList<AITool> ?? aiContext.Tools?.ToList();
-            if (options?.Tools is { Count: > 0 } || tools is { Count: > 0 })
+            if (options.Tools is { Count: > 0 } || tools is { Count: > 0 })
             {
-                options ??= new();
                 options.Tools = tools;
             }
 
-            if (options?.Instructions is not null || aiContext.Instructions is not null)
+            if (options.Instructions is not null || aiContext.Instructions is not null)
             {
-                options ??= new();
                 options.Instructions = aiContext.Instructions;
             }
 

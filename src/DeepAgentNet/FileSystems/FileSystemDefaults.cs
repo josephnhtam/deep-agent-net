@@ -24,7 +24,7 @@ namespace DeepAgentNet.FileSystems
             You have access to a filesystem which you can interact with using these tools.
             All file paths must start with a /.
 
-            When reading files, each line in the output is prefixed in the format `#<line_number>:<content>`. Treat the `#<line_number>:` prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
+            When reading files, results are returned using cat -n format, with line numbers starting at 1. Treat the line number prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
 
             - ls: list files and directories in a path (supports recursive listing)
             - read_file: read a file from the filesystem
@@ -56,13 +56,8 @@ namespace DeepAgentNet.FileSystems
             - The offset parameter is the line number to start from (0-indexed).
             - To read later sections, call this tool again with a larger offset.
             - Use the grep tool to find specific content in large files.
-            - Contents are returned with each line prefixed by its 1-based line number in the format `#<line_number>:<content>`. For example, if a file contains "  hello\n  world", you will receive:
-              #1:  hello
-              #2:  world
-              The `#<line_number>:` prefix is metadata added by this tool and is NOT part of the actual file content.
-            - Lines longer than 10,000 characters will be split into multiple lines with continuation markers (e.g., #5.1:, #5.2:, etc.). When you specify a limit, these continuation lines count towards the limit.
+            - Results are returned using cat -n format, with line numbers starting at 1.
             - You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
-            - If you read a file that exists but has empty contents you will receive a system reminder warning in place of file contents.
             - You should ALWAYS make sure a file has been read before editing it.
             """;
 
@@ -89,7 +84,7 @@ namespace DeepAgentNet.FileSystems
 
             Usage:
             - You must read the file before editing. This tool will error if you attempt an edit without reading the file first.
-            - CRITICAL: The read_file output prefixes every line in the format `#<line_number>:<content>`. These prefixes are metadata, NOT part of the file. You must NEVER include line number prefixes in old_string or new_string. Only use the text that appears AFTER the `#<line_number>:` prefix.
+            - CRITICAL: The read_file output prefixes every line with its line number in cat -n format. These prefixes are metadata, NOT part of the file. You must NEVER include line number prefixes in old_string or new_string. Only use the actual file content that appears after the line number prefix.
             - Preserve the exact indentation (tabs/spaces) as it appears in the actual file content (after the line number prefix).
             - ALWAYS prefer editing existing files over creating new ones.
             - Only use emojis if the user explicitly requests it.
