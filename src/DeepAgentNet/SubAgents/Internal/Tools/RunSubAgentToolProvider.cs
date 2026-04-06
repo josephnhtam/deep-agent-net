@@ -61,86 +61,28 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             [Description("The detailed description and expected result of the task for the agent to perform")]
             string prompt,
             string subAgentType,
-            [Description("Set only to resume a previous task. Pass the task_id from a prior result to continue that subagent session instead of creating a fresh one.")]
+            [Description(
+                "Set only to resume a previous task. " +
+                "Pass the task_id from a prior result to continue that subagent session instead of creating a fresh one.")]
             string? taskId = null,
             CancellationToken cancellationToken = default)
         {
-            string resolvedTaskId;
-            AIAgent agent;
-            AgentSession session;
-            SubAgent subAgent;
-            bool resumed = false;
+            ResolvedSubAgent? resolvedSubAgent = await TryResolveSubAgentAsync(taskId, subAgentType, cancellationToken).ConfigureAwait(false);
 
-            if (taskId is not null && TryGetSessionEntry(taskId, out SubAgentSessionEntry? entry) &&
-                _subAgentMap.TryGetValue(entry!.SubAgentType, out subAgent!))
-            {
-                agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken).ConfigureAwait(false);
-                session = await agent.DeserializeSessionAsync(entry.SerializedState, cancellationToken: cancellationToken).ConfigureAwait(false);
-                resolvedTaskId = taskId;
-                resumed = true;
-            }
-            else if (_subAgentMap.TryGetValue(subAgentType, out subAgent!))
-            {
-                agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken).ConfigureAwait(false);
-                session = await agent.CreateSessionAsync(cancellationToken).ConfigureAwait(false);
-                resolvedTaskId = Guid.NewGuid().ToString("N");
-            }
-            else
-            {
+            if (!resolvedSubAgent.HasValue)
                 return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys)}";
-            }
 
-            await subAgent.Handle.OnSessionCreatedAsync(agent.Id, resolvedTaskId, resumed, cancellationToken).ConfigureAwait(false);
+            (SubAgent subAgent, AIAgent agent, AgentSession session, string resolvedTaskId, bool resumed) = resolvedSubAgent.Value;
+            await subAgent.Handle.OnSessionCreateOrResumedAsync(agent.Id, resolvedTaskId, resumed, cancellationToken).ConfigureAwait(false);
 
-            List<ChatMessage> inputs = [new(ChatRole.User, prompt)];
+            SubAgentRunner runner = new(resolvedSubAgent.Value);
+            AgentResponse response = await runner.RunAsync(prompt, cancellationToken).ConfigureAwait(false);
 
-            List<AgentResponseUpdate> updates = new();
-            AgentResponse response;
-
-            while (true)
-            {
-                await foreach (AgentResponseUpdate update in
-                    agent.RunStreamingAsync(inputs, session, cancellationToken: cancellationToken).ConfigureAwait(false))
-                {
-                    await subAgent.Handle.ReceiveUpdateAsync(agent.Id, update, cancellationToken).ConfigureAwait(false);
-                    updates.Add(update);
-                }
-
-                response = updates.ToAgentResponse();
-                await subAgent.Handle.ReceiveResponseAsync(agent.Id, response, cancellationToken).ConfigureAwait(false);
-
-                List<Task<ToolApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
-                    .OfType<ToolApprovalRequestContent>()
-                    .Select(c => subAgent.Handle.ApproveToolCallAsync(agent.Id, c, cancellationToken))
-                    .ToList();
-
-                HashSet<string> completedCallIds = response.Messages.SelectMany(m => m.Contents)
-                    .OfType<FunctionResultContent>()
-                    .Select(c => c.CallId)
-                    .ToHashSet();
-
-                List<Task<FunctionResultContent>> callResultTasks = response.Messages.SelectMany(m => m.Contents)
-                    .OfType<FunctionCallContent>()
-                    .Where(c => !completedCallIds.Contains(c.CallId))
-                    .Select(async c => new FunctionResultContent(
-                        c.CallId, await subAgent.Handle.ProvideFunctionResultAsync(agent.Id, c, cancellationToken).ConfigureAwait(false)
-                    ))
-                    .ToList();
-
-                if (!approvalResultTasks.Any() && !callResultTasks.Any())
-                    break;
-
-                inputs.Clear();
-                updates.Clear();
-
-                IList<AIContent> approvalResults = await Task.WhenAll(approvalResultTasks).ConfigureAwait(false);
-                IList<AIContent> callResults = await Task.WhenAll(callResultTasks).ConfigureAwait(false);
-                inputs.Add(new ChatMessage(ChatRole.Tool, approvalResults.Concat(callResults).ToList()));
-            }
-
+            await subAgent.Handle.OnSessionCompletedAsync(agent.Id, resolvedTaskId, cancellationToken).ConfigureAwait(false);
             await SaveSessionEntryAsync(agent, session, resolvedTaskId, subAgent.Name, cancellationToken).ConfigureAwait(false);
 
             string result = response.Messages.Last().Text;
+
             return $"""
                 task_id: {resolvedTaskId} (for resuming to continue this task if needed)
 
@@ -150,16 +92,42 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 """;
         }
 
-        private bool TryGetSessionEntry(string taskId, out SubAgentSessionEntry? entry)
+        private async ValueTask<ResolvedSubAgent?> TryResolveSubAgentAsync(string? taskId, string subAgentType, CancellationToken cancellationToken)
         {
-            entry = null;
+            if (taskId is not null && TryGetSessionEntry(taskId) is { } entry &&
+                _subAgentMap.TryGetValue(entry.SubAgentType, out var subAgent))
+            {
+                AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken)
+                    .ConfigureAwait(false);
 
+                AgentSession session = await agent.DeserializeSessionAsync(entry.SerializedState, cancellationToken: cancellationToken)
+                    .ConfigureAwait(false);
+
+                return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: true);
+            }
+
+            if (_subAgentMap.TryGetValue(subAgentType, out subAgent))
+            {
+                AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken)
+                    .ConfigureAwait(false);
+
+                AgentSession session = await agent.CreateSessionAsync(cancellationToken)
+                    .ConfigureAwait(false);
+
+                taskId = Guid.NewGuid().ToString("N");
+                return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: false);
+            }
+
+            return null;
+        }
+
+        private SubAgentSessionEntry? TryGetSessionEntry(string taskId)
+        {
             if (_parentSession?.StateBag is not { } stateBag)
-                return false;
+                return null;
 
-            string key = StateBagKeyPrefix + taskId;
-            entry = stateBag.GetValue<SubAgentSessionEntry>(key);
-            return entry is not null;
+            string key = GetSubAgentSessionKey(taskId);
+            return stateBag.GetValue<SubAgentSessionEntry>(key);
         }
 
         private async ValueTask SaveSessionEntryAsync(
@@ -171,8 +139,76 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             JsonElement serializedState = await agent.SerializeSessionAsync(
                 session, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            string key = StateBagKeyPrefix + taskId;
+            string key = GetSubAgentSessionKey(taskId);
             stateBag.SetValue(key, new SubAgentSessionEntry(subAgentType, serializedState));
         }
+
+        private class SubAgentRunner
+        {
+            private readonly SubAgent _subAgent;
+            private readonly AIAgent _agent;
+            private readonly AgentSession _session;
+
+            public SubAgentRunner(ResolvedSubAgent subAgent)
+            {
+                _subAgent = subAgent.SubAgent;
+                _agent = subAgent.Agent;
+                _session = subAgent.Session;
+            }
+
+            public async ValueTask<AgentResponse> RunAsync(string prompt, CancellationToken cancellationToken)
+            {
+                AgentResponse response;
+                List<AgentResponseUpdate> updates = new();
+
+                List<ChatMessage> inputs = [new(ChatRole.User, prompt)];
+
+                while (true)
+                {
+                    await foreach (AgentResponseUpdate update in
+                        _agent.RunStreamingAsync(inputs, _session, cancellationToken: cancellationToken).ConfigureAwait(false))
+                    {
+                        await _subAgent.Handle.ReceiveUpdateAsync(_agent.Id, update, cancellationToken).ConfigureAwait(false);
+                        updates.Add(update);
+                    }
+
+                    response = updates.ToAgentResponse();
+                    await _subAgent.Handle.ReceiveResponseAsync(_agent.Id, response, cancellationToken).ConfigureAwait(false);
+
+                    List<Task<ToolApprovalResponseContent>> approvalResultTasks = response.Messages.SelectMany(m => m.Contents)
+                        .OfType<ToolApprovalRequestContent>()
+                        .Select(c => _subAgent.Handle.ApproveToolCallAsync(_agent.Id, c, cancellationToken))
+                        .ToList();
+
+                    HashSet<string> completedCallIds = response.Messages.SelectMany(m => m.Contents)
+                        .OfType<FunctionResultContent>()
+                        .Select(c => c.CallId)
+                        .ToHashSet();
+
+                    List<Task<FunctionResultContent>> callResultTasks = response.Messages.SelectMany(m => m.Contents)
+                        .OfType<FunctionCallContent>()
+                        .Where(c => !completedCallIds.Contains(c.CallId))
+                        .Select(async c => new FunctionResultContent(
+                            c.CallId, await _subAgent.Handle.ProvideFunctionResultAsync(_agent.Id, c, cancellationToken).ConfigureAwait(false)
+                        ))
+                        .ToList();
+
+                    if (!approvalResultTasks.Any() && !callResultTasks.Any())
+                        break;
+
+                    inputs.Clear();
+                    updates.Clear();
+
+                    IList<AIContent> approvalResults = await Task.WhenAll(approvalResultTasks).ConfigureAwait(false);
+                    IList<AIContent> callResults = await Task.WhenAll(callResultTasks).ConfigureAwait(false);
+                    inputs.Add(new ChatMessage(ChatRole.Tool, approvalResults.Concat(callResults).ToList()));
+                }
+
+                return response;
+            }
+        }
+
+        private static string GetSubAgentSessionKey(string taskId) => StateBagKeyPrefix + taskId;
+        private record struct ResolvedSubAgent(SubAgent SubAgent, AIAgent Agent, AgentSession Session, string TaskId, bool Resumed);
     }
 }

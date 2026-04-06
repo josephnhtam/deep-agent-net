@@ -7,8 +7,9 @@ namespace DeepAgentNet.SubAgents.Contracts
     {
         Task<ToolApprovalResponseContent> ApproveToolCallAsync(string agentId, ToolApprovalRequestContent call, CancellationToken cancellationToken);
         Task<object?> ProvideFunctionResultAsync(string agentId, FunctionCallContent call, CancellationToken cancellationToken);
-        ValueTask ReceiveUpdateAsync(string agentId, AgentResponseUpdate update, CancellationToken cancellationToken);
-        ValueTask ReceiveResponseAsync(string agentId, AgentResponse response, CancellationToken cancellationToken);
-        ValueTask OnSessionCreatedAsync(string agentId, string taskId, bool resumed, CancellationToken cancellationToken) => default;
+        ValueTask ReceiveUpdateAsync(string agentId, AgentResponseUpdate update, CancellationToken cancellationToken) => default;
+        ValueTask ReceiveResponseAsync(string agentId, AgentResponse response, CancellationToken cancellationToken) => default;
+        ValueTask OnSessionCreateOrResumedAsync(string agentId, string taskId, bool resumed, CancellationToken cancellationToken) => default;
+        ValueTask OnSessionCompletedAsync(string agentId, string taskId, CancellationToken cancellationToken) => default;
     }
 }
