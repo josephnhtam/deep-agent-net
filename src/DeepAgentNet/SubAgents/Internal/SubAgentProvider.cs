@@ -49,8 +49,8 @@ namespace DeepAgentNet.SubAgents.Internal
             if (options.GeneralPurposeAgent is not null)
             {
                 ISubAgentFactory factory = options.GeneralPurposeAgent.Factory ??
-                    new GeneralPurposeSubAgentFactory(
-                        options.GeneralPurposeAgent.SystemPrompt ?? SubAgentDefaults.GeneralPurposeAgentSystemPrompt);
+                    new DefaultSubAgentFactory(options.GeneralPurposeAgent.SystemPrompt ??
+                        SubAgentDefaults.GeneralPurposeAgentSystemPrompt);
 
                 subAgents.Add(new SubAgent(
                     Name: SubAgentDefaults.GeneralPurposeAgentName,
@@ -66,23 +66,6 @@ namespace DeepAgentNet.SubAgents.Internal
             }
 
             return subAgents;
-        }
-
-        private class GeneralPurposeSubAgentFactory(string systemPrompt) : ISubAgentFactory
-        {
-            public ChatClientAgentOptions ProvideAgentOptions(
-                ChatClientAgentOptions defaultOptions, IList<AIContextProvider> defaultContextProviders)
-            {
-                ChatClientAgentOptions options = defaultOptions.Clone();
-                options.Id = $"general-purpose:{Guid.NewGuid():N}";
-
-                options.ChatOptions ??= new ChatOptions();
-                options.ChatOptions.Instructions = systemPrompt;
-
-                options.AIContextProviders = [..options.AIContextProviders ?? [], ..defaultContextProviders];
-
-                return options;
-            }
         }
     }
 }
