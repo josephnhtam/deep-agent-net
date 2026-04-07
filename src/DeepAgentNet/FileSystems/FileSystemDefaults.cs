@@ -109,6 +109,9 @@ namespace DeepAgentNet.FileSystems
             Deletes a file from the filesystem.
 
             The file must exist. The operation will fail if the file does not exist or is a symlink.
+
+            Rules:
+            - You must read the file with read_file before deleting. Deletions will be rejected if the file has not been read first.
             """;
 
         public const string GlobToolDescription = """

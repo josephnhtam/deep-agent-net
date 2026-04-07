@@ -1,16 +1,14 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
-namespace DeepAgentNet.Agents
+namespace DeepAgentNet.Agents.Internal
 {
-    public class DeepAgent : DelegatingAIAgent
+    internal class DeepAgent : DelegatingAIAgent
     {
         public const string KeyAgent = "DeepAgent.Agent";
         public const string KeySession = "DeepAgent.Session";
 
-        public DeepAgent(AIAgent innerAgent) : base(innerAgent)
-        {
-        }
+        internal DeepAgent(AIAgent innerAgent) : base(innerAgent) { }
 
         protected override Task<AgentResponse> RunCoreAsync(
             IEnumerable<ChatMessage> messages, AgentSession? session = null,

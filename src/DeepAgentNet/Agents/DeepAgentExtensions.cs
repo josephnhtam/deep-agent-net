@@ -1,3 +1,4 @@
+using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.SubAgents;
@@ -11,7 +12,7 @@ namespace DeepAgentNet.Agents
 {
     public static class DeepAgentExtensions
     {
-        public static DeepAgent AsDeepAgent(
+        public static AIAgent AsDeepAgent(
             this IChatClient client,
             ChatClientAgentOptions options,
             DeepAgentOptions? deepAgentOptions = null,
@@ -29,7 +30,7 @@ namespace DeepAgentNet.Agents
             options.AIContextProviders = [..options.AIContextProviders ?? [], ..deepAgentContextProviders];
 
             AIAgent agent = new ChatClientAgent(client, options, loggerFactory, services);
-            return new DeepAgent(agent);
+            return agent.AsDeepAgent();
 
             List<AIContextProvider> CreateDeepAgentContextProviders(ChatClientAgentOptions agentOptions) =>
                 CollectContextProviders(
@@ -52,17 +53,12 @@ namespace DeepAgentNet.Agents
                 DefaultChatClient: client,
                 DefaultOptions: options,
                 DefaultContextProviders: CreateDefaultContextProviders(),
-                DefaultGeneralPurposeContextProviders: CreateGeneralPurposeContextProviders()
+                DefaultGeneralPurposeContextProviders: CreateDefaultContextProviders()
             );
 
             return new SubAgentProvider(defaultOptions, deepAgentOptions?.SubAgent, loggerFactory, services);
 
             List<AIContextProvider> CreateDefaultContextProviders() => CollectContextProviders(
-                CreateTodoListProvider(deepAgentOptions),
-                CreateFileSystemProvider(deepAgentOptions)
-            );
-
-            List<AIContextProvider> CreateGeneralPurposeContextProviders() => CollectContextProviders(
                 CreateTodoListProvider(deepAgentOptions),
                 CreateFileSystemProvider(deepAgentOptions)
             );

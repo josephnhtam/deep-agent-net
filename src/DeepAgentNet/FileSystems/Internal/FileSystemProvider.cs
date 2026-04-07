@@ -20,7 +20,7 @@ namespace DeepAgentNet.FileSystems.Internal
             FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions, fileLocks);
             FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions, fileLocks);
             FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions, fileLocks);
-            FileDeleteToolProvider fileDeleteToolProvider = new(options.Access, options.DeleteFileToolOptions);
+            FileDeleteToolProvider fileDeleteToolProvider = new(options.Access, options.DeleteFileToolOptions, fileLocks);
             GlobToolProvider globToolProvider = new(options.Access, options.GlobToolOptions);
             GrepToolProvider grepToolProvider = new(options.Access, options.GrepToolOptions);
 

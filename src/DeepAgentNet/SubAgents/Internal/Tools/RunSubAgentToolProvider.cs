@@ -1,3 +1,4 @@
+using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.Shared.Contracts;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -61,8 +62,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             [Description("The detailed description and expected result of the task for the agent to perform")]
             string prompt,
             string subAgentType,
-            [Description(
-                "Set only to resume a previous task. " +
+            [Description("Set only to resume a previous task. " +
                 "Pass the task_id from a prior result to continue that subagent session instead of creating a fresh one.")]
             string? taskId = null,
             CancellationToken cancellationToken = default)
@@ -73,7 +73,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys)}";
 
             (SubAgent subAgent, AIAgent agent, AgentSession session, string resolvedTaskId, bool resumed) = resolvedSubAgent.Value;
-            await subAgent.Handle.OnSessionCreateOrResumedAsync(agent.Id, resolvedTaskId, resumed, cancellationToken).ConfigureAwait(false);
+
+            await subAgent.Handle.OnSessionCreateOrResumedAsync(agent.Id, resolvedTaskId, resumed, description, prompt, cancellationToken)
+                .ConfigureAwait(false);
 
             SubAgentRunner runner = new(resolvedSubAgent.Value);
             AgentResponse response = await runner.RunAsync(prompt, cancellationToken).ConfigureAwait(false);
@@ -92,7 +94,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 """;
         }
 
-        private async ValueTask<ResolvedSubAgent?> TryResolveSubAgentAsync(string? taskId, string subAgentType, CancellationToken cancellationToken)
+        private async ValueTask<ResolvedSubAgent?> TryResolveSubAgentAsync(
+            string? taskId, string subAgentType, CancellationToken cancellationToken)
         {
             if (taskId is not null && TryGetSessionEntry(taskId) is { } entry &&
                 _subAgentMap.TryGetValue(entry.SubAgentType, out var subAgent))
@@ -102,6 +105,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
                 AgentSession session = await agent.DeserializeSessionAsync(entry.SerializedState, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
+
+                agent = agent.AsDeepAgent();
 
                 return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: true);
             }
@@ -115,6 +120,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     .ConfigureAwait(false);
 
                 taskId = Guid.NewGuid().ToString("N");
+                agent = agent.AsDeepAgent();
+
                 return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: false);
             }
 
@@ -165,6 +172,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
                 while (true)
                 {
+                    cancellationToken.ThrowIfCancellationRequested();
+
                     await foreach (AgentResponseUpdate update in
                         _agent.RunStreamingAsync(inputs, _session, cancellationToken: cancellationToken).ConfigureAwait(false))
                     {

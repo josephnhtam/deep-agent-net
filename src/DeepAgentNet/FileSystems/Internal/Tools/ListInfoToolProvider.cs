@@ -1,17 +1,15 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
-using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
+using FileSystemInfo = DeepAgentNet.FileSystems.Contracts.FileSystemInfo;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
 {
-    using FileSystemInfo = Contracts.FileSystemInfo;
-
     internal class ListInfoToolProvider : IToolProvider
     {
         private readonly IFileSystemAccess _access;

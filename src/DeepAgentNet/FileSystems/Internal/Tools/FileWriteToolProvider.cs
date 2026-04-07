@@ -1,4 +1,5 @@
 using DeepAgentNet.FileSystems.Contracts;
+using DeepAgentNet.FileSystems.Internal.Contracts;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
 using Microsoft.Extensions.AI;
@@ -6,14 +7,14 @@ using System.ComponentModel;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
 {
-    public class FileWriteToolProvider : IToolProvider
+    internal class FileWriteToolProvider : IToolProvider
     {
         private readonly IFileSystemAccess _access;
-        private readonly FileLocks _fileLocks;
+        private readonly IFileLocks _fileLocks;
 
         public AITool Tool { get; }
 
-        internal FileWriteToolProvider(IFileSystemAccess access, ToolOptions options, FileLocks fileLocks)
+        internal FileWriteToolProvider(IFileSystemAccess access, ToolOptions options, IFileLocks fileLocks)
         {
             _access = access;
             _fileLocks = fileLocks;
@@ -37,7 +38,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
-                string? validationError = FileToolGuards.ValidateLsState(filePath);
+                string? validationError = await ValidateAsync(filePath, _access, cancellationToken)
+                    .ConfigureAwait(false);
 
                 if (validationError is not null)
                     return validationError;
@@ -53,5 +55,9 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 }
             }
         }
+
+        public static ValueTask<string?> ValidateAsync(
+            string filePath, IFileSystemAccess access, CancellationToken cancellationToken)
+            => new(FileToolGuards.ValidateLsState(filePath));
     }
 }

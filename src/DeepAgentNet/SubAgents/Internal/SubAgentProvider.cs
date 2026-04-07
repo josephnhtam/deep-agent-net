@@ -67,8 +67,6 @@ namespace DeepAgentNet.SubAgents.Internal
                     ];
 
                     AIAgent agent = new ChatClientAgent(defaultOptions.DefaultChatClient, agentOptions, loggerFactory, services);
-                    agent = new DeepAgent(agent);
-
                     return new(agent);
                 }
 

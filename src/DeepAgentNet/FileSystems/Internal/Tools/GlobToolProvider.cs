@@ -5,11 +5,10 @@ using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
+using FileSystemInfo = DeepAgentNet.FileSystems.Contracts.FileSystemInfo;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
 {
-    using FileSystemInfo = Contracts.FileSystemInfo;
-
     internal class GlobToolProvider : IToolProvider
     {
         private readonly IFileSystemAccess _access;

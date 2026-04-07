@@ -1,6 +1,5 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
-using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.Shared.Internal;
@@ -102,8 +101,9 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 session.StateBag.SetValue(FileReadState.StateBagKey, state);
             }
 
-            DateTime lastWriteTime = _access.GetLastWriteTimeUtc(filePath) ?? DateTime.UtcNow;
-            state.RecordRead(filePath, lastWriteTime);
+            string normalized = PathHelper.NormalizePath(filePath);
+            DateTime lastWriteTime = _access.GetLastWriteTimeUtc(normalized) ?? DateTime.UtcNow;
+            state.RecordRead(normalized, lastWriteTime);
         }
 
         private record Result

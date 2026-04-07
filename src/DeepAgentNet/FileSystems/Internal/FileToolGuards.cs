@@ -1,13 +1,16 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
+using DeepAgentNet.Shared.Internal;
 using Microsoft.Extensions.AI;
 
-namespace DeepAgentNet.FileSystems.Internal.Tools
+namespace DeepAgentNet.FileSystems.Internal
 {
     internal static class FileToolGuards
     {
         public static string? ValidateReadState(string filePath, IFileSystemAccess access)
         {
+            filePath = PathHelper.NormalizePath(filePath);
+
             var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
             var state = session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
@@ -23,7 +26,9 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         public static string? ValidateLsState(string filePath)
         {
-            if (!Directory.Exists(filePath))
+            filePath = PathHelper.NormalizePath(filePath);
+
+            if (!Directory.Exists(Path.GetDirectoryName(filePath)))
                 return null;
 
             var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
@@ -40,6 +45,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         public static void UpdateReadState(string filePath, IFileSystemAccess access)
         {
+            filePath = PathHelper.NormalizePath(filePath);
+
             var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
             var state = session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 

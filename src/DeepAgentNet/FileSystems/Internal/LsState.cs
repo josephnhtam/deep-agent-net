@@ -1,3 +1,5 @@
+using DeepAgentNet.Shared.Internal;
+
 namespace DeepAgentNet.FileSystems.Internal
 {
     internal class LsState
@@ -8,17 +10,12 @@ namespace DeepAgentNet.FileSystems.Internal
 
         public void Record(string dirPath)
         {
-            ListedDirs.Add(Normalize(dirPath));
+            ListedDirs.Add(PathHelper.NormalizePath(dirPath));
         }
 
         public bool HasBeenListed(string dirPath)
         {
-            return ListedDirs.Contains(Normalize(dirPath));
-        }
-
-        private static string Normalize(string path)
-        {
-            return path.Replace('\\', '/').TrimEnd('/');
+            return ListedDirs.Contains(PathHelper.NormalizePath(dirPath));
         }
     }
 }

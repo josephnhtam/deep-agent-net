@@ -1,14 +1,16 @@
+using DeepAgentNet.FileSystems.Internal.Contracts;
+using DeepAgentNet.Shared.Internal;
 using System.Collections.Concurrent;
 
 namespace DeepAgentNet.FileSystems.Internal
 {
-    internal class FileLocks
+    internal class FileLocks : IFileLocks
     {
         private readonly ConcurrentDictionary<string, RefCountedLock> _locks = new(StringComparer.OrdinalIgnoreCase);
 
-        public async Task<IDisposable> AcquireAsync(string filePath, CancellationToken cancellationToken = default)
+        public async ValueTask<IDisposable> AcquireAsync(string filePath, CancellationToken cancellationToken = default)
         {
-            string key = filePath.Replace('\\', '/').TrimEnd('/');
+            string key = PathHelper.NormalizePath(filePath);
 
             RefCountedLock entry;
             lock (_locks)
