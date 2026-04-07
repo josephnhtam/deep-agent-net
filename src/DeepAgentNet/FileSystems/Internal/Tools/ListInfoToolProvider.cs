@@ -85,7 +85,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         private static LsState? GetOrCreateLsState()
         {
-            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
+            var session = ContextAccessor.Session;
             if (session is null)
                 return null;
 

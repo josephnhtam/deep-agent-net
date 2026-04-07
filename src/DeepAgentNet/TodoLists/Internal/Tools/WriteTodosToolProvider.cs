@@ -53,7 +53,7 @@ namespace DeepAgentNet.TodoLists.Internal.Tools
 
         private static void UpdateSessionTodoList(List<Todo> todos)
         {
-            AgentSession? session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
+            AgentSession? session = ContextAccessor.Session;
 
             if (session is null)
                 return;

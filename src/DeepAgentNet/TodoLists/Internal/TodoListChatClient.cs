@@ -26,7 +26,6 @@ namespace DeepAgentNet.TodoLists.Internal
                 .ConfigureAwait(false);
 
             IncrementTurnCounter(options);
-
             return response;
         }
 

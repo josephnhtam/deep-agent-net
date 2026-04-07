@@ -1,7 +1,6 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.Shared.Internal;
-using Microsoft.Extensions.AI;
 
 namespace DeepAgentNet.FileSystems.Internal
 {
@@ -11,8 +10,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
-            var state = session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            var state = ContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
             if (state is null || !state.HasBeenRead(filePath))
                 return "Error: File has not been read yet. Use read_file first before editing.";
@@ -31,8 +29,7 @@ namespace DeepAgentNet.FileSystems.Internal
             if (!Directory.Exists(Path.GetDirectoryName(filePath)))
                 return null;
 
-            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
-            var state = session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
+            var state = ContextAccessor.Session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
 
             int lastSlash = filePath.LastIndexOf('/');
             string parentDir = lastSlash > 0 ? filePath[..lastSlash] : "/";
@@ -47,8 +44,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
-            var state = session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            var state = ContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
             DateTime lastWriteTime = access.GetLastWriteTimeUtc(filePath) ?? DateTime.UtcNow;
             state?.RecordRead(filePath, lastWriteTime);

@@ -1,4 +1,5 @@
 using DeepAgentNet.Agents.Internal;
+using DeepAgentNet.Agents.Internal.Contracts;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.SubAgents;
@@ -19,6 +20,9 @@ namespace DeepAgentNet.Agents
             ILoggerFactory? loggerFactory = null,
             IServiceProvider? services = null)
         {
+            IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
+            client = client.AsFunctionCallPreValidValidatingChatClient(preValidator);
+
             client = client.AsTodoListChatClient(deepAgentOptions?.TodoList);
 
             if (deepAgentOptions?.Compaction is not null)
@@ -66,5 +70,15 @@ namespace DeepAgentNet.Agents
 
         private static List<AIContextProvider> CollectContextProviders(params AIContextProvider?[] providers) =>
             providers.Where(provider => provider != null).ToList()!;
+
+        private static IFunctionCallPreValidValidator CreateFunctionCallPreValidValidator(DeepAgentOptions? deepAgentOptions)
+        {
+            FunctionCallPreValidValidator validator = new();
+
+            if (deepAgentOptions?.FileSystem is not null)
+                new FileSystemPreValidator(deepAgentOptions.FileSystem.Access).Register(validator);
+
+            return validator;
+        }
     }
 }

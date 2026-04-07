@@ -90,7 +90,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         private void RecordFileRead(string filePath)
         {
-            var session = FunctionInvokingChatClient.CurrentContext?.Options?.GetSession();
+            var session = ContextAccessor.Session;
             if (session is null)
                 return;
 
