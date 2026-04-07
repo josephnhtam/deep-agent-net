@@ -36,7 +36,8 @@ namespace DeepAgentNet.Agents.Internal
 
                 foreach (var message in response.Messages)
                 {
-                    ChatMessage? addedMessage = await ProcessFunctionCallPreValidationAsync(message.Contents, cancellationToken);
+                    ChatMessage? addedMessage =
+                        await ProcessFunctionCallPreValidationAsync(message.Contents, cancellationToken);
 
                     if (addedMessage is not null)
                     {
@@ -126,9 +127,9 @@ namespace DeepAgentNet.Agents.Internal
 
             for (var i = 0; i < contents.Count; i++)
             {
-                var content = contents[i];
+                FunctionCallContent? call = GetFunctionCallContent(contents[i]);
 
-                if (content is not FunctionCallContent call)
+                if (call is null)
                     continue;
 
                 string? rejection = await FunctionCallPreValidator.PreValidateAsync(call, cancellationToken);
@@ -136,6 +137,7 @@ namespace DeepAgentNet.Agents.Internal
                 if (rejection is not null)
                 {
                     call.InformationalOnly = true;
+                    contents[i] = call;
                     (rejections ??= []).Add(new FunctionResultContent(call.CallId, rejection));
                 }
             }
@@ -151,23 +153,30 @@ namespace DeepAgentNet.Agents.Internal
             return null;
         }
 
+        private static FunctionCallContent? GetFunctionCallContent(AIContent content) => content switch
+        {
+            FunctionCallContent call => call,
+            ToolApprovalRequestContent { ToolCall: FunctionCallContent call } => call,
+            _ => null
+        };
+
         private static bool HasUnprocessedFunctionCallRequest(ChatResponse response) =>
             response.Messages.SelectMany(m => m.Contents).OfType<FunctionCallContent>()
                 .Any(c => !c.InformationalOnly);
 
-        private static ChatResponseUpdate ConvertToolResultMessageToUpdate(ChatMessage message, string? conversationId, string? messageId) =>
-            new()
-            {
-                AdditionalProperties = message.AdditionalProperties,
-                AuthorName = message.AuthorName,
-                ConversationId = conversationId,
-                CreatedAt = DateTimeOffset.UtcNow,
-                Contents = message.Contents,
-                RawRepresentation = message.RawRepresentation,
-                ResponseId = messageId,
-                MessageId = messageId,
-                Role = message.Role,
-            };
+        private static ChatResponseUpdate ConvertToolResultMessageToUpdate(
+            ChatMessage message, string? conversationId, string? messageId) => new()
+        {
+            AdditionalProperties = message.AdditionalProperties,
+            AuthorName = message.AuthorName,
+            ConversationId = conversationId,
+            CreatedAt = DateTimeOffset.UtcNow,
+            Contents = message.Contents,
+            RawRepresentation = message.RawRepresentation,
+            ResponseId = messageId,
+            MessageId = messageId,
+            Role = message.Role,
+        };
 
         private static void FixupHistories(
             IEnumerable<ChatMessage> originalMessages,
