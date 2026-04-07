@@ -189,14 +189,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                         .Select(c => _subAgent.Handle.ApproveToolCallAsync(_agent.Id, c, cancellationToken))
                         .ToList();
 
-                    HashSet<string> completedCallIds = response.Messages.SelectMany(m => m.Contents)
-                        .OfType<FunctionResultContent>()
-                        .Select(c => c.CallId)
-                        .ToHashSet();
-
                     List<Task<FunctionResultContent>> callResultTasks = response.Messages.SelectMany(m => m.Contents)
                         .OfType<FunctionCallContent>()
-                        .Where(c => !completedCallIds.Contains(c.CallId))
+                        .Where(c => c.InformationalOnly)
                         .Select(async c => new FunctionResultContent(
                             c.CallId, await _subAgent.Handle.ProvideFunctionResultAsync(_agent.Id, c, cancellationToken).ConfigureAwait(false)
                         ))
