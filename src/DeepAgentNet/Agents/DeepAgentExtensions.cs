@@ -15,52 +15,72 @@ namespace DeepAgentNet.Agents
     {
         public static AIAgent AsDeepAgent(
             this IChatClient client,
-            ChatClientAgentOptions options,
-            DeepAgentOptions? deepAgentOptions = null,
+            ChatClientAgentOptions agentOptions,
+            DeepAgentOptions deepAgentOptions,
             ILoggerFactory? loggerFactory = null,
             IServiceProvider? services = null)
         {
-            IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
-            client = client.AsFunctionCallPreValidValidatingChatClient(preValidator);
+            client = DecorateChatClient(client, deepAgentOptions);
+            ChatClientAgentOptions defaultAgentOptions = agentOptions.Clone();
 
-            client = client.AsTodoListChatClient(deepAgentOptions?.TodoList);
+            ChatClientAgentOptions masterAgentOptions = CreateMasterAgentOptions(
+                client, deepAgentOptions, loggerFactory, services, defaultAgentOptions);
 
-            if (deepAgentOptions?.Compaction is not null)
-                client = client.AsCompactionChatClient(deepAgentOptions.Compaction);
-
-            List<AIContextProvider> deepAgentContextProviders = CreateDeepAgentContextProviders(options.Clone());
-
-            options = options.Clone();
-            options.AIContextProviders = [..options.AIContextProviders ?? [], ..deepAgentContextProviders];
-
-            AIAgent agent = new ChatClientAgent(client, options, loggerFactory, services);
+            AIAgent agent = new ChatClientAgent(client, masterAgentOptions, loggerFactory, services);
             return agent.AsDeepAgent();
-
-            List<AIContextProvider> CreateDeepAgentContextProviders(ChatClientAgentOptions agentOptions) =>
-                CollectContextProviders(
-                    CreateTodoListProvider(deepAgentOptions),
-                    CreateSubAgentProvider(client, agentOptions, deepAgentOptions, loggerFactory, services),
-                    CreateFileSystemProvider(deepAgentOptions)
-                );
         }
 
-        private static TodoListProvider CreateTodoListProvider(DeepAgentOptions? deepAgentOptions) =>
-            new(deepAgentOptions?.TodoList);
+        private static IChatClient DecorateChatClient(IChatClient client, DeepAgentOptions deepAgentOptions)
+        {
+            IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
+            client = client.AsFunctionCallPreValidatingChatClient(preValidator);
 
-        private static FileSystemProvider? CreateFileSystemProvider(DeepAgentOptions? deepAgentOptions) =>
-            deepAgentOptions?.FileSystem != null ? new(deepAgentOptions.FileSystem) : null;
+            client = client.AsTodoListChatClient(deepAgentOptions.TodoList);
+
+            if (deepAgentOptions.Compaction is not null)
+                client = client.AsCompactionChatClient(deepAgentOptions.Compaction);
+
+            return client;
+        }
+
+        private static ChatClientAgentOptions CreateMasterAgentOptions(
+            IChatClient client, DeepAgentOptions deepAgentOptions,
+            ILoggerFactory? loggerFactory, IServiceProvider? services, ChatClientAgentOptions defaultAgentOptions)
+        {
+            ChatClientAgentOptions masterAgentOptions = defaultAgentOptions.Clone();
+
+            masterAgentOptions.AIContextProviders =
+            [
+                ..masterAgentOptions.AIContextProviders ?? [],
+                ..CreateDeepAgentContextProviders()
+            ];
+
+            List<AIContextProvider> CreateDeepAgentContextProviders() =>
+                CollectContextProviders(
+                    CreateTodoListProvider(deepAgentOptions),
+                    CreateSubAgentProvider(client, defaultAgentOptions, deepAgentOptions, loggerFactory, services),
+                    CreateFileSystemProvider(deepAgentOptions)
+                );
+
+            return masterAgentOptions;
+        }
+
+        private static TodoListProvider CreateTodoListProvider(DeepAgentOptions deepAgentOptions) =>
+            new(deepAgentOptions.TodoList);
+
+        private static FileSystemProvider? CreateFileSystemProvider(DeepAgentOptions deepAgentOptions) =>
+            deepAgentOptions.FileSystem != null ? new(deepAgentOptions.FileSystem) : null;
 
         private static AIContextProvider CreateSubAgentProvider(IChatClient client, ChatClientAgentOptions options,
-            DeepAgentOptions? deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
+            DeepAgentOptions deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
         {
             SubAgentDefaultOptions defaultOptions = new(
                 DefaultChatClient: client,
                 DefaultOptions: options,
-                DefaultContextProviders: CreateDefaultContextProviders(),
-                DefaultGeneralPurposeContextProviders: CreateDefaultContextProviders()
+                DefaultContextProviders: CreateDefaultContextProviders()
             );
 
-            return new SubAgentProvider(defaultOptions, deepAgentOptions?.SubAgent, loggerFactory, services);
+            return new SubAgentProvider(defaultOptions, deepAgentOptions.SubAgent, loggerFactory, services);
 
             List<AIContextProvider> CreateDefaultContextProviders() => CollectContextProviders(
                 CreateTodoListProvider(deepAgentOptions),
@@ -71,11 +91,11 @@ namespace DeepAgentNet.Agents
         private static List<AIContextProvider> CollectContextProviders(params AIContextProvider?[] providers) =>
             providers.Where(provider => provider != null).ToList()!;
 
-        private static IFunctionCallPreValidValidator CreateFunctionCallPreValidValidator(DeepAgentOptions? deepAgentOptions)
+        private static IFunctionCallPreValidValidator CreateFunctionCallPreValidValidator(DeepAgentOptions deepAgentOptions)
         {
             FunctionCallPreValidValidator validator = new();
 
-            if (deepAgentOptions?.FileSystem is not null)
+            if (deepAgentOptions.FileSystem is not null)
                 new FileSystemPreValidator(deepAgentOptions.FileSystem.Access).Register(validator);
 
             return validator;

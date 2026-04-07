@@ -9,11 +9,12 @@ namespace DeepAgentNet.TodoLists.Internal
     internal class TodoListChatClient : DelegatingChatClient
     {
         private readonly int _reminderTurnThreshold;
+        public TodoListProviderOptions ProviderOptions { get; }
 
         internal TodoListChatClient(IChatClient innerClient, TodoListProviderOptions? options) : base(innerClient)
         {
-            _reminderTurnThreshold = options?.ReminderTurnThreshold
-                ?? TodoListDefaults.DefaultReminderTurnThreshold;
+            ProviderOptions = options ?? new TodoListProviderOptions();
+            _reminderTurnThreshold = ProviderOptions.ReminderTurnThreshold ?? TodoListDefaults.DefaultReminderTurnThreshold;
         }
 
         public override async Task<ChatResponse> GetResponseAsync(

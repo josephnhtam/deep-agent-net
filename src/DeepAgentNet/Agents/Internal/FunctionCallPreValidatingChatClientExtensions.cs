@@ -3,16 +3,16 @@ using Microsoft.Extensions.AI;
 
 namespace DeepAgentNet.Agents.Internal
 {
-    internal static class FunctionCallPreValidValidatingChatClientExtensions
+    internal static class FunctionCallPreValidatingChatClientExtensions
     {
-        public static FunctionCallPreValidValidatingChatClient AsFunctionCallPreValidValidatingChatClient(this IChatClient chatClient, IFunctionCallPreValidValidator validator)
+        public static FunctionCallPreValidatingChatClient AsFunctionCallPreValidatingChatClient(this IChatClient chatClient, IFunctionCallPreValidValidator validator)
         {
-            if (chatClient.GetService<FunctionCallPreValidValidatingChatClient>() is { } inner)
+            if (chatClient.GetService<FunctionCallPreValidatingChatClient>() is { } inner)
             {
                 return inner;
             }
 
-            return new FunctionCallPreValidValidatingChatClient(chatClient, validator);
+            return new FunctionCallPreValidatingChatClient(chatClient, validator);
         }
     }
 }

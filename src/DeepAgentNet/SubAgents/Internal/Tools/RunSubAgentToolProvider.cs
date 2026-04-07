@@ -1,5 +1,7 @@
 using DeepAgentNet.Agents.Internal;
+using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.Shared.Contracts;
+using DeepAgentNet.TodoLists.Internal;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
@@ -100,32 +102,62 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             if (taskId is not null && TryGetSessionEntry(taskId) is { } entry &&
                 _subAgentMap.TryGetValue(entry.SubAgentType, out var subAgent))
             {
-                AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken)
-                    .ConfigureAwait(false);
+                AIAgent agent = CreateAgentFromFactory(subAgent);
 
                 AgentSession session = await agent.DeserializeSessionAsync(entry.SerializedState, cancellationToken: cancellationToken)
                     .ConfigureAwait(false);
-
-                agent = agent.AsDeepAgent();
 
                 return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: true);
             }
 
             if (_subAgentMap.TryGetValue(subAgentType, out subAgent))
             {
-                AIAgent agent = await subAgent.Factory(_defaultOptions, _loggerFactory, _services, cancellationToken)
-                    .ConfigureAwait(false);
+                AIAgent agent = CreateAgentFromFactory(subAgent);
 
                 AgentSession session = await agent.CreateSessionAsync(cancellationToken)
                     .ConfigureAwait(false);
 
                 taskId = Guid.NewGuid().ToString("N");
-                agent = agent.AsDeepAgent();
-
                 return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: false);
             }
 
             return null;
+        }
+
+        private AIAgent CreateAgentFromFactory(SubAgent subAgent)
+        {
+            ChatClientAgentOptions agentOptions = subAgent.Factory.ProvideAgentOptions(
+                _defaultOptions.DefaultOptions, _defaultOptions.DefaultContextProviders);
+
+            IChatClient chatClient = subAgent.Factory.CreateChatClient(agentOptions.ChatOptions ?? new ChatOptions())
+                ?? _defaultOptions.DefaultChatClient;
+
+            chatClient = DecorateChatClient(chatClient);
+
+            AIAgent agent = new ChatClientAgent(chatClient, agentOptions, _loggerFactory, _services);
+            agent = agent.AsDeepAgent();
+
+            return subAgent.Factory.DecorateAgent(agent);
+
+            IChatClient DecorateChatClient(IChatClient client)
+            {
+                if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
+                {
+                    client = client.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator);
+                }
+
+                if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
+                {
+                    client = client.AsTodoListChatClient(todoListClient.ProviderOptions);
+                }
+
+                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
+                {
+                    client = client.AsCompactionChatClient(compactionClient.ProviderOptions);
+                }
+
+                return client;
+            }
         }
 
         private SubAgentSessionEntry? TryGetSessionEntry(string taskId)

@@ -4,13 +4,13 @@ using System.Runtime.CompilerServices;
 
 namespace DeepAgentNet.Agents.Internal
 {
-    internal class FunctionCallPreValidValidatingChatClient : DelegatingChatClient
+    internal class FunctionCallPreValidatingChatClient : DelegatingChatClient
     {
-        private static AsyncLocal<FunctionCallPreValidValidatingContext> _currentContext = new();
-        public static FunctionCallPreValidValidatingContext? CurrentContext => _currentContext.Value;
+        private static AsyncLocal<FunctionCallPreValidatingContext> _currentContext = new();
+        public static FunctionCallPreValidatingContext? CurrentContext => _currentContext.Value;
         public IFunctionCallPreValidValidator FunctionCallPreValidator { get; }
 
-        internal FunctionCallPreValidValidatingChatClient(IChatClient innerClient, IFunctionCallPreValidValidator? functionCallPreValidValidator = null) : base(innerClient)
+        internal FunctionCallPreValidatingChatClient(IChatClient innerClient, IFunctionCallPreValidValidator? functionCallPreValidValidator = null) : base(innerClient)
         {
             FunctionCallPreValidator = functionCallPreValidValidator ?? new FunctionCallPreValidValidator();
         }
@@ -30,7 +30,7 @@ namespace DeepAgentNet.Agents.Internal
 
                 ChatResponse response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
 
-                _currentContext.Value = new FunctionCallPreValidValidatingContext(options);
+                _currentContext.Value = new FunctionCallPreValidatingContext(options);
 
                 bool preValidationRejected = false;
 
@@ -84,7 +84,7 @@ namespace DeepAgentNet.Agents.Internal
                 await foreach (ChatResponseUpdate update in
                     base.GetStreamingResponseAsync(chatMessages, options, cancellationToken))
                 {
-                    _currentContext.Value = new FunctionCallPreValidValidatingContext(options);
+                    _currentContext.Value = new FunctionCallPreValidatingContext(options);
                     ChatMessage? addedMessage = await ProcessFunctionCallPreValidationAsync(update.Contents, cancellationToken);
 
                     updates.Add(update);
@@ -219,5 +219,5 @@ namespace DeepAgentNet.Agents.Internal
         }
     }
 
-    internal record struct FunctionCallPreValidValidatingContext(ChatOptions? Options);
+    internal record struct FunctionCallPreValidatingContext(ChatOptions? Options);
 }

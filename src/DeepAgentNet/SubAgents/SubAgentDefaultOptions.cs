@@ -6,7 +6,6 @@ namespace DeepAgentNet.SubAgents
     public record SubAgentDefaultOptions(
         IChatClient DefaultChatClient,
         ChatClientAgentOptions DefaultOptions,
-        IList<AIContextProvider> DefaultContextProviders,
-        IList<AIContextProvider> DefaultGeneralPurposeContextProviders
+        IList<AIContextProvider> DefaultContextProviders
     );
 }

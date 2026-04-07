@@ -9,9 +9,12 @@ namespace DeepAgentNet.Compactions.Internal
     public class CompactionChatClient : DelegatingChatClient
     {
         private readonly CompactionProvider _compactionProvider;
+        public CompactionProviderOptions ProviderOptions { get; }
 
         internal CompactionChatClient(IChatClient innerClient, CompactionProviderOptions providerOptions) : base(innerClient)
         {
+            ProviderOptions = providerOptions;
+
             _compactionProvider = new CompactionProvider(
                 providerOptions.CompactionStrategy, providerOptions.CompactionStateKey, providerOptions.LoggerFactory);
         }

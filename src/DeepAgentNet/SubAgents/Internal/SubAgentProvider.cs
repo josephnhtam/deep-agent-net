@@ -1,4 +1,4 @@
-using DeepAgentNet.Agents;
+using DeepAgentNet.SubAgents.Contracts;
 using DeepAgentNet.SubAgents.Internal.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -12,7 +12,7 @@ namespace DeepAgentNet.SubAgents.Internal
         private readonly List<AITool> _tools;
         private readonly RunSubAgentToolProvider? _runSubAgentToolProvider;
 
-        public SubAgentProvider(SubAgentDefaultOptions defaultOptions, SubAgentProviderOptions? options = null,
+        public SubAgentProvider(SubAgentDefaultOptions defaultOptions, SubAgentProviderOptions? options,
             ILoggerFactory? loggerFactory = null, IServiceProvider? services = null)
         {
             _options = options ?? new SubAgentProviderOptions();
@@ -48,33 +48,15 @@ namespace DeepAgentNet.SubAgents.Internal
 
             if (options.GeneralPurposeAgent is not null)
             {
-                ValueTask<AIAgent> GeneralPurposeAgentFactory(
-                    SubAgentDefaultOptions defaultOptions,
-                    ILoggerFactory? loggerFactory,
-                    IServiceProvider? services,
-                    CancellationToken cancellation)
-                {
-                    ChatClientAgentOptions agentOptions = defaultOptions.DefaultOptions.Clone();
-
-                    agentOptions.Id = $"general-purpose:{Guid.NewGuid().ToString("N")}";
-                    agentOptions.ChatOptions = agentOptions.ChatOptions?.Clone() ?? new ChatOptions();
-                    agentOptions.ChatOptions.Instructions = options.GeneralPurposeAgent.SystemPrompt ?? SubAgentDefaults.GeneralPurposeAgentSystemPrompt;
-
-                    agentOptions.AIContextProviders =
-                    [
-                        ..agentOptions.AIContextProviders ?? [],
-                        ..defaultOptions.DefaultGeneralPurposeContextProviders
-                    ];
-
-                    AIAgent agent = new ChatClientAgent(defaultOptions.DefaultChatClient, agentOptions, loggerFactory, services);
-                    return new(agent);
-                }
+                ISubAgentFactory factory = options.GeneralPurposeAgent.Factory ??
+                    new GeneralPurposeSubAgentFactory(
+                        options.GeneralPurposeAgent.SystemPrompt ?? SubAgentDefaults.GeneralPurposeAgentSystemPrompt);
 
                 subAgents.Add(new SubAgent(
                     Name: SubAgentDefaults.GeneralPurposeAgentName,
                     Description: options.GeneralPurposeAgent.Description ?? SubAgentDefaults.GeneralPurposeAgentDescription,
                     Handle: options.GeneralPurposeAgent.Handle,
-                    Factory: options.GeneralPurposeAgent.Factory ?? GeneralPurposeAgentFactory
+                    Factory: factory
                 ));
             }
 
@@ -84,6 +66,23 @@ namespace DeepAgentNet.SubAgents.Internal
             }
 
             return subAgents;
+        }
+
+        private class GeneralPurposeSubAgentFactory(string systemPrompt) : ISubAgentFactory
+        {
+            public ChatClientAgentOptions ProvideAgentOptions(
+                ChatClientAgentOptions defaultOptions, IList<AIContextProvider> defaultContextProviders)
+            {
+                ChatClientAgentOptions options = defaultOptions.Clone();
+                options.Id = $"general-purpose:{Guid.NewGuid():N}";
+
+                options.ChatOptions ??= new ChatOptions();
+                options.ChatOptions.Instructions = systemPrompt;
+
+                options.AIContextProviders = [..options.AIContextProviders ?? [], ..defaultContextProviders];
+
+                return options;
+            }
         }
     }
 }

@@ -7,7 +7,7 @@ namespace DeepAgentNet.Agents.Internal
     {
         public static ChatOptions? Options =>
             FunctionInvokingChatClient.CurrentContext?.Options ??
-            FunctionCallPreValidValidatingChatClient.CurrentContext?.Options;
+            FunctionCallPreValidatingChatClient.CurrentContext?.Options;
 
         public static AgentSession? Session => Options?.GetSession();
 
