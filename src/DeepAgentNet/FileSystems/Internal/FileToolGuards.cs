@@ -26,9 +26,6 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            if (!Directory.Exists(Path.GetDirectoryName(filePath)))
-                return null;
-
             var state = ContextAccessor.Session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
 
             int lastSlash = filePath.LastIndexOf('/');
