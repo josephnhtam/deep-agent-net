@@ -48,8 +48,12 @@ namespace DeepAgentNet.Agents.Internal
 
                 responseMessages.AddRange(response.Messages);
 
-                if (!preValidationRejected || HasUnprocessedFunctionCallRequest(response))
+                if (!preValidationRejected ||
+                    HasUnprocessedFunctionCallRequest(response) ||
+                    HasToolApprovalRequest(response))
+                {
                     return new ChatResponse(responseMessages);
+                }
 
                 FixupHistories(
                     originalMessages,
@@ -104,8 +108,12 @@ namespace DeepAgentNet.Agents.Internal
                 ChatResponse response = updates.ToChatResponse();
                 responseMessages.AddRange(response.Messages);
 
-                if (!preValidationRejected || HasUnprocessedFunctionCallRequest(response))
+                if (!preValidationRejected ||
+                    HasUnprocessedFunctionCallRequest(response) ||
+                    HasToolApprovalRequest(response))
+                {
                     break;
+                }
 
                 FixupHistories(
                     originalMessages,
@@ -163,6 +171,10 @@ namespace DeepAgentNet.Agents.Internal
         private static bool HasUnprocessedFunctionCallRequest(ChatResponse response) =>
             response.Messages.SelectMany(m => m.Contents).OfType<FunctionCallContent>()
                 .Any(c => !c.InformationalOnly);
+
+        private static bool HasToolApprovalRequest(ChatResponse response) =>
+            response.Messages.SelectMany(m => m.Contents).OfType<ToolApprovalRequestContent>()
+                .Any();
 
         private static ChatResponseUpdate ConvertToolResultMessageToUpdate(
             ChatMessage message, string? conversationId, string? messageId) => new()
