@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 
 namespace DeepAgentNet.Agents.Internal
 {
-    public static class ContextAccessor
+    internal static class ContextAccessor
     {
         public static ChatOptions? Options =>
             FunctionInvokingChatClient.CurrentContext?.Options ??

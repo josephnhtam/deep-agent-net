@@ -1,6 +1,6 @@
 namespace DeepAgentNet.FileSystems.Internal.Contracts
 {
-    public interface IFileLocks
+    internal interface IFileLocks
     {
         ValueTask<IDisposable> AcquireAsync(string filePath, CancellationToken cancellationToken = default);
     }

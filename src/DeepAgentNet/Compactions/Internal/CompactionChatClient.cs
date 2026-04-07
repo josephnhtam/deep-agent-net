@@ -6,7 +6,7 @@ using System.Runtime.CompilerServices;
 
 namespace DeepAgentNet.Compactions.Internal
 {
-    public class CompactionChatClient : DelegatingChatClient
+    internal class CompactionChatClient : DelegatingChatClient
     {
         private readonly CompactionProvider _compactionProvider;
         public CompactionProviderOptions ProviderOptions { get; }
