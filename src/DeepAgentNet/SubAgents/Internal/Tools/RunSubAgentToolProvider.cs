@@ -141,6 +141,11 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
             IChatClient DecorateChatClient(IChatClient client)
             {
+                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
+                {
+                    client = client.AsCompactionChatClient(compactionClient.ProviderOptions);
+                }
+
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                 {
                     client = client.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator);
@@ -149,11 +154,6 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
                 {
                     client = client.AsTodoListChatClient(todoListClient.ProviderOptions);
-                }
-
-                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
-                {
-                    client = client.AsCompactionChatClient(compactionClient.ProviderOptions);
                 }
 
                 return client;

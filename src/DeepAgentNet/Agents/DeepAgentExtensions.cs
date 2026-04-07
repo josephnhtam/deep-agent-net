@@ -32,13 +32,13 @@ namespace DeepAgentNet.Agents
 
         private static IChatClient DecorateChatClient(IChatClient client, DeepAgentOptions deepAgentOptions)
         {
+            if (deepAgentOptions.Compaction is not null)
+                client = client.AsCompactionChatClient(deepAgentOptions.Compaction);
+
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             client = client.AsFunctionCallPreValidatingChatClient(preValidator);
 
             client = client.AsTodoListChatClient(deepAgentOptions.TodoList);
-
-            if (deepAgentOptions.Compaction is not null)
-                client = client.AsCompactionChatClient(deepAgentOptions.Compaction);
 
             return client;
         }
