@@ -132,31 +132,33 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             IChatClient chatClient = subAgent.Factory.CreateChatClient(agentOptions.ChatOptions ?? new ChatOptions())
                 ?? _defaultOptions.DefaultChatClient;
 
-            chatClient = DecorateChatClient(chatClient);
+            chatClient = BuildChatClient(chatClient);
 
             AIAgent agent = new ChatClientAgent(chatClient, agentOptions, _loggerFactory, _services);
             agent = agent.AsDeepAgent();
 
             return subAgent.Factory.DecorateAgent(agent);
 
-            IChatClient DecorateChatClient(IChatClient client)
+            IChatClient BuildChatClient(IChatClient client)
             {
-                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
-                {
-                    client = client.AsCompactionChatClient(compactionClient.ProviderOptions);
-                }
+                ChatClientBuilder builder = client.AsBuilder();
 
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                 {
-                    client = client.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator);
+                    builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
+                }
+
+                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
+                {
+                    builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
                 }
 
                 if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
                 {
-                    client = client.AsTodoListChatClient(todoListClient.ProviderOptions);
+                    builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
                 }
 
-                return client;
+                return builder.Build();
             }
         }
 

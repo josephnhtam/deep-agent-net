@@ -8,6 +8,6 @@ namespace DeepAgentNet.Shared
 
     public record TokenLimitedToolOptions : ToolOptions
     {
-        public int? ResultTokenLimit { get; init; } = 20_000;
+        public int? ResultTokenLimit { get; init; } = 100_000;
     }
 }

@@ -20,7 +20,7 @@ namespace DeepAgentNet.Agents
             ILoggerFactory? loggerFactory = null,
             IServiceProvider? services = null)
         {
-            client = DecorateChatClient(client, deepAgentOptions);
+            client = BuildChatClient(client, deepAgentOptions);
             ChatClientAgentOptions defaultAgentOptions = agentOptions.Clone();
 
             ChatClientAgentOptions masterAgentOptions = CreateMasterAgentOptions(
@@ -30,17 +30,19 @@ namespace DeepAgentNet.Agents
             return agent.AsDeepAgent();
         }
 
-        private static IChatClient DecorateChatClient(IChatClient client, DeepAgentOptions deepAgentOptions)
+        private static IChatClient BuildChatClient(IChatClient client, DeepAgentOptions deepAgentOptions)
         {
-            if (deepAgentOptions.Compaction is not null)
-                client = client.AsCompactionChatClient(deepAgentOptions.Compaction);
+            ChatClientBuilder builder = client.AsBuilder();
 
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
-            client = client.AsFunctionCallPreValidatingChatClient(preValidator);
+            builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
 
-            client = client.AsTodoListChatClient(deepAgentOptions.TodoList);
+            if (deepAgentOptions.Compaction is not null)
+                builder = builder.Use(inner => inner.AsCompactionChatClient(deepAgentOptions.Compaction));
 
-            return client;
+            builder = builder.Use(inner => inner.AsTodoListChatClient(deepAgentOptions.TodoList));
+
+            return builder.Build();
         }
 
         private static ChatClientAgentOptions CreateMasterAgentOptions(
