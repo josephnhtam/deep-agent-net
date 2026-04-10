@@ -1,5 +1,6 @@
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using System.Collections.Concurrent;
 using System.Threading.Channels;
 
 namespace CodingAgentSample
@@ -14,6 +15,7 @@ namespace CodingAgentSample
         private readonly AIAgent _agent;
         private readonly AgentSession _session;
         private readonly ChannelWriter<AgentEvent> _channel;
+        private readonly ConcurrentDictionary<string, FunctionCallContent> _functionCalls = new();
 
         public AgentTurnRunner(AIAgent agent, AgentSession session, ChannelWriter<AgentEvent> channel)
         {
@@ -38,6 +40,23 @@ namespace CodingAgentSample
 
                     await foreach (var update in _agent.RunStreamingAsync(inputs, _session, cancellationToken: cancellationToken))
                     {
+                        foreach (var call in update.Contents.OfType<FunctionCallContent>())
+                        {
+                            if (call.Name != "write_todos")
+                                _functionCalls[call.CallId] = call;
+                        }
+
+                        foreach (var callResult in update.Contents.OfType<FunctionResultContent>())
+                        {
+                            var callId = callResult.CallId;
+
+                            if (_functionCalls.TryRemove(callId, out var call) &&
+                                !callResult.IsRejectedFunctionResult())
+                            {
+                                _channel.TryWrite(new ToolUsed(_agent.Id, call, callResult));
+                            }
+                        }
+
                         foreach (var reasoning in update.Contents.OfType<TextReasoningContent>())
                         {
                             if (!string.IsNullOrEmpty(reasoning.Text))
@@ -77,7 +96,13 @@ namespace CodingAgentSample
                         results.Add(await responseSource.Task);
                     }
 
-                    inputs = [new ChatMessage(ChatRole.Tool, results)];
+                    inputs =
+                    [
+                        new ChatMessage(ChatRole.Tool, results)
+                        {
+                            MessageId = $"approval:{Guid.NewGuid():N}"
+                        }
+                    ];
                 }
             }
             finally

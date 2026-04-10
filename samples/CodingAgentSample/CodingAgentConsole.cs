@@ -122,6 +122,11 @@ namespace CodingAgentSample
                     RenderTodos(todos);
                     break;
 
+                case ToolUsed { Call: var call, Result: var result }:
+                    EndThinking();
+                    ToolUsed(call);
+                    break;
+
                 case ApprovalRequired ar:
                     EndThinking();
                     HandleApproval(ar);
@@ -172,6 +177,27 @@ namespace CodingAgentSample
             Console.WriteLine();
         }
 
+        private static void ToolUsed(FunctionCallContent call)
+        {
+            var toolName = call.Name;
+            var detailLines = new StringBuilder();
+
+            AnsiConsole.MarkupLine($"\n[blue]Tool Used:[/] [yellow]{Markup.Escape(toolName)}[/]");
+
+            if (call.Arguments is { Count: > 0 } args)
+            {
+                foreach (var (key, value) in args)
+                {
+                    var display = FormatArgValue(value);
+                    detailLines.AppendLine($"  [grey]{Markup.Escape(key)}:[/] {Markup.Escape(display)}");
+                }
+
+                AnsiConsole.Write(new Panel(new Markup(detailLines.ToString()))
+                    .BorderColor(Color.Grey)
+                    .Padding(1, 0));
+            }
+        }
+
         private void HandleApproval(ApprovalRequired approvalRequired)
         {
             Console.WriteLine();
@@ -183,7 +209,7 @@ namespace CodingAgentSample
             if (approvalRequired.Request.ToolCall is FunctionCallContent call)
             {
                 toolName = call.Name;
-                if (call.Arguments is { } args)
+                if (call.Arguments is { Count: > 0 } args)
                 {
                     foreach (var (key, value) in args)
                     {

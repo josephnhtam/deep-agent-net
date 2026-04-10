@@ -9,6 +9,7 @@ namespace CodingAgentSample
     internal class SubAgentHandle(ChannelWriter<AgentEvent> channel) : ISubAgentHandle
     {
         private readonly ConcurrentDictionary<string, string> _taskDescriptions = new();
+        private readonly ConcurrentDictionary<string, FunctionCallContent> _functionCalls = new();
 
         public Task<ToolApprovalResponseContent> ApproveToolCallAsync(
             string agentId, ToolApprovalRequestContent call, CancellationToken cancellationToken)
@@ -27,6 +28,23 @@ namespace CodingAgentSample
         public ValueTask ReceiveUpdateAsync(
             string agentId, AgentResponseUpdate update, CancellationToken cancellationToken)
         {
+            foreach (var call in update.Contents.OfType<FunctionCallContent>())
+            {
+                if (call.Name != "write_todos")
+                    _functionCalls[call.CallId] = call;
+            }
+
+            foreach (var callResult in update.Contents.OfType<FunctionResultContent>())
+            {
+                var callId = callResult.CallId;
+
+                if (_functionCalls.TryRemove(callId, out var call) &&
+                    !callResult.IsRejectedFunctionResult())
+                {
+                    channel.TryWrite(new ToolUsed(agentId, call, callResult));
+                }
+            }
+
             return ValueTask.CompletedTask;
         }
 
