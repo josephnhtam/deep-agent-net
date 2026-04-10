@@ -10,6 +10,8 @@ namespace DeepAgentNet.Agents.Internal
         public static FunctionCallPreValidatingContext? CurrentContext => _currentContext.Value;
         public IFunctionCallPreValidValidator FunctionCallPreValidator { get; }
 
+        private const string KeyPreValidationRejected = "PreValidationRejected";
+
         internal FunctionCallPreValidatingChatClient(IChatClient innerClient, IFunctionCallPreValidValidator? functionCallPreValidValidator = null) : base(innerClient)
         {
             FunctionCallPreValidator = functionCallPreValidValidator ?? new FunctionCallPreValidValidator();
@@ -146,7 +148,13 @@ namespace DeepAgentNet.Agents.Internal
                 {
                     call.InformationalOnly = true;
                     contents[i] = call;
-                    (rejections ??= []).Add(new FunctionResultContent(call.CallId, rejection));
+                    (rejections ??= []).Add(new FunctionResultContent(call.CallId, rejection)
+                    {
+                        AdditionalProperties = new AdditionalPropertiesDictionary
+                        {
+                            [KeyPreValidationRejected] = true
+                        }
+                    });
                 }
             }
 
@@ -154,7 +162,7 @@ namespace DeepAgentNet.Agents.Internal
             {
                 return new ChatMessage(ChatRole.Tool, rejections)
                 {
-                    MessageId = Guid.NewGuid().ToString("N")
+                    MessageId = $"PreValidation:{Guid.NewGuid():N}"
                 };
             }
 
@@ -163,7 +171,7 @@ namespace DeepAgentNet.Agents.Internal
 
         private static FunctionCallContent? GetFunctionCallContent(AIContent content) => content switch
         {
-            FunctionCallContent call => call,
+            FunctionCallContent { InformationalOnly: false } call => call,
             ToolApprovalRequestContent { ToolCall: FunctionCallContent call } => call,
             _ => null
         };

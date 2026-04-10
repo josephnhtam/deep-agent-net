@@ -143,6 +143,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             {
                 ChatClientBuilder builder = client.AsBuilder();
 
+                builder.Use(inner => inner.AsFunctionInvokingChatClient());
+
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                 {
                     builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
@@ -225,7 +227,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
                     List<Task<FunctionResultContent>> callResultTasks = response.Messages.SelectMany(m => m.Contents)
                         .OfType<FunctionCallContent>()
-                        .Where(c => c.InformationalOnly)
+                        .Where(c => !c.InformationalOnly)
                         .Select(async c => new FunctionResultContent(
                             c.CallId, await _subAgent.Handle.ProvideFunctionResultAsync(_agent.Id, c, cancellationToken).ConfigureAwait(false)
                         ))
@@ -239,7 +241,11 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
                     IList<AIContent> approvalResults = await Task.WhenAll(approvalResultTasks).ConfigureAwait(false);
                     IList<AIContent> callResults = await Task.WhenAll(callResultTasks).ConfigureAwait(false);
-                    inputs.Add(new ChatMessage(ChatRole.Tool, approvalResults.Concat(callResults).ToList()));
+
+                    inputs.Add(new ChatMessage(ChatRole.Tool, approvalResults.Concat(callResults).ToList())
+                    {
+                        MessageId = $"subagent:{Guid.NewGuid():N}"
+                    });
                 }
 
                 return response;

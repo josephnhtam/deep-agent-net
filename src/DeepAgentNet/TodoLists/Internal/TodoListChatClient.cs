@@ -63,7 +63,10 @@ namespace DeepAgentNet.TodoLists.Internal
                 return messages;
 
             List<ChatMessage> messageList = messages as List<ChatMessage> ?? messages.ToList();
-            messageList.Add(new ChatMessage(ChatRole.User, BuildReminderMessage(state.Todos)));
+            messageList.Add(new ChatMessage(ChatRole.User, BuildReminderMessage(state.Todos))
+            {
+                MessageId = $"todo:{Guid.NewGuid():N}"
+            });
             return messageList;
         }
 
