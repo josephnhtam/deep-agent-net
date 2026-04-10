@@ -6,7 +6,7 @@ namespace DeepAgentNet.FileSystems.Internal
 {
     internal static class FileToolGuards
     {
-        public static string? ValidateReadState(string filePath, IFileSystemAccess access)
+        public static async ValueTask<string?> ValidateReadStateAsync(string filePath, IFileSystemAccess access, CancellationToken cancellationToken = default)
         {
             filePath = PathHelper.NormalizePath(filePath);
 
@@ -15,7 +15,7 @@ namespace DeepAgentNet.FileSystems.Internal
             if (state is null || !state.HasBeenRead(filePath))
                 return "Error: File has not been read yet. Use read_file first before editing.";
 
-            DateTime? currentWriteTime = access.GetLastWriteTimeUtc(filePath);
+            DateTime? currentWriteTime = await GetLastWriteTimeUtc(filePath, access, cancellationToken);
             if (currentWriteTime.HasValue && state.IsStale(filePath, currentWriteTime.Value))
                 return "Error: File has been modified since it was last read. Read it again before editing.";
 
@@ -37,14 +37,38 @@ namespace DeepAgentNet.FileSystems.Internal
             return null;
         }
 
-        public static void UpdateReadState(string filePath, IFileSystemAccess access)
+        public static async ValueTask UpdateReadStateAsync(string filePath, IFileSystemAccess access, CancellationToken cancellationToken = default)
         {
             filePath = PathHelper.NormalizePath(filePath);
 
             var state = ContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
-            DateTime lastWriteTime = access.GetLastWriteTimeUtc(filePath) ?? DateTime.UtcNow;
+            DateTime lastWriteTime = await GetLastWriteTimeUtc(filePath, access, cancellationToken) ?? DateTime.UtcNow;
             state?.RecordRead(filePath, lastWriteTime);
+        }
+
+        public static async ValueTask RecordFileReadAsync(string filePath, IFileSystemAccess access, CancellationToken cancellationToken)
+        {
+            var session = ContextAccessor.Session;
+            if (session is null)
+                return;
+
+            var state = session.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            if (state is null)
+            {
+                state = new FileReadState();
+                session.StateBag.SetValue(FileReadState.StateBagKey, state);
+            }
+
+            string normalized = PathHelper.NormalizePath(filePath);
+            DateTime lastWriteTime = await GetLastWriteTimeUtc(normalized, access, cancellationToken) ?? DateTime.UtcNow;
+            state.RecordRead(normalized, lastWriteTime);
+        }
+
+        private static async ValueTask<DateTime?> GetLastWriteTimeUtc(string filePath, IFileSystemAccess access, CancellationToken cancellationToken = default)
+        {
+            var info = await access.GetInfoAsync(filePath, cancellationToken).ConfigureAwait(false);
+            return info?.ModifiedAt.ToUniversalTime();
         }
     }
 }

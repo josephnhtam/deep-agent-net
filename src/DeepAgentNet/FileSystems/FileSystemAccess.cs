@@ -426,11 +426,21 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
-        public DateTime? GetLastWriteTimeUtc(string filePath)
+        public ValueTask<FileSystemInfo?> GetInfoAsync(string filePath, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(filePath);
             FileInfo fileInfo = new(fullPath);
-            return fileInfo.Exists ? fileInfo.LastWriteTimeUtc : null;
+
+            if (!fileInfo.Exists)
+                return new((FileSystemInfo?)null);
+
+            string relative = Path.GetRelativePath(fullPath, fileInfo.FullName).Replace('\\', '/');
+
+            return new(new FileSystemInfo(
+                Path: relative,
+                IsDirectory: false,
+                Size: fileInfo.Length,
+                ModifiedAt: fileInfo.LastWriteTime));
         }
 
         private async IAsyncEnumerable<string> ReadLineAsync(string fullPath, [EnumeratorCancellation] CancellationToken cancellationToken)

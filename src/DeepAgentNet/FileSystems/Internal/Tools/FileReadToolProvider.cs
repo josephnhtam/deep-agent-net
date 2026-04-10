@@ -1,4 +1,3 @@
-using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
@@ -67,7 +66,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 int startLine = offset + 1;
                 string content = sb.ToString();
 
-                RecordFileRead(filePath);
+                await FileToolGuards.RecordFileReadAsync(filePath, _access, cancellationToken);
 
                 return new Result
                 {
@@ -88,23 +87,6 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             }
         }
 
-        private void RecordFileRead(string filePath)
-        {
-            var session = ContextAccessor.Session;
-            if (session is null)
-                return;
-
-            var state = session.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
-            if (state is null)
-            {
-                state = new FileReadState();
-                session.StateBag.SetValue(FileReadState.StateBagKey, state);
-            }
-
-            string normalized = PathHelper.NormalizePath(filePath);
-            DateTime lastWriteTime = _access.GetLastWriteTimeUtc(normalized) ?? DateTime.UtcNow;
-            state.RecordRead(normalized, lastWriteTime);
-        }
 
         private record Result
         {

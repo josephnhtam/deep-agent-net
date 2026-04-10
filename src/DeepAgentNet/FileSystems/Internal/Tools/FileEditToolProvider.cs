@@ -52,7 +52,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 try
                 {
                     EditResult result = await _access.EditAsync(filePath, oldString, newString, replaceAll, cancellationToken).ConfigureAwait(false);
-                    FileToolGuards.UpdateReadState(filePath, _access);
+                    FileToolGuards.UpdateReadStateAsync(filePath, _access);
 
                     return replaceAll
                         ? $"The file '{filePath}' has been updated. All occurrences ({result.Occurrences}) were successfully replaced."
@@ -70,8 +70,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             }
         }
 
-        public static ValueTask<string?> ValidateAsync(
+        public static async ValueTask<string?> ValidateAsync(
             string filePath, IFileSystemAccess access, CancellationToken cancellationToken) =>
-            new(FileToolGuards.ValidateReadState(filePath, access));
+            await FileToolGuards.ValidateReadStateAsync(filePath, access, cancellationToken);
     }
 }

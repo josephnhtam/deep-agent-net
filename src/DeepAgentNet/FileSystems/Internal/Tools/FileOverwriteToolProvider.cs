@@ -47,7 +47,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 try
                 {
                     await _access.OverwriteAsync(filePath, content, cancellationToken).ConfigureAwait(false);
-                    FileToolGuards.UpdateReadState(filePath, _access);
+                    await FileToolGuards.UpdateReadStateAsync(filePath, _access, cancellationToken);
                     return $"Successfully overwrote '{filePath}'";
                 }
                 catch (Exception ex)
@@ -57,8 +57,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             }
         }
 
-        public static ValueTask<string?> ValidateAsync(
+        public static async ValueTask<string?> ValidateAsync(
             string filePath, IFileSystemAccess access, CancellationToken cancellationToken)
-            => new(FileToolGuards.ValidateReadState(filePath, access));
+            => await FileToolGuards.ValidateReadStateAsync(filePath, access, cancellationToken);
     }
 }
