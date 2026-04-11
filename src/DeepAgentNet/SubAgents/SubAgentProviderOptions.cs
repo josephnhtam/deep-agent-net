@@ -15,5 +15,6 @@ namespace DeepAgentNet.SubAgents
         public string? SystemPrompt { get; init; }
         public string? Description { get; init; }
         public ISubAgentFactory? Factory { get; init; }
+        public SubAgentOptions? Options { get; init; }
     }
 }

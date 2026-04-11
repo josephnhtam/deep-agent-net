@@ -57,7 +57,8 @@ namespace DeepAgentNet.SubAgents.Internal
                     Description: options.GeneralPurposeAgent.Description ?? SubAgentDefaults.GeneralPurposeAgentDescription,
                     Handle: options.GeneralPurposeAgent.Handle,
                     Factory: factory
-                ));
+                )
+                { Options = options.GeneralPurposeAgent.Options });
             }
 
             if (options.SubAgents is { Count: > 0 })

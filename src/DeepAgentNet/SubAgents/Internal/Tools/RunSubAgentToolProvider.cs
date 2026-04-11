@@ -1,5 +1,8 @@
+using DeepAgentNet.Agents;
 using DeepAgentNet.Agents.Internal;
+using DeepAgentNet.Agents.Internal.Contracts;
 using DeepAgentNet.Compactions.Internal;
+using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.TodoLists.Internal;
 using Microsoft.Agents.AI;
@@ -126,44 +129,75 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
         private AIAgent CreateAgentFromFactory(SubAgent subAgent)
         {
+            IList<AIContextProvider> contextProviders = subAgent.Options is { } options
+                ? ResolveContextProviders(options)
+                : _defaultOptions.DefaultContextProviders;
+
             ChatClientAgentOptions agentOptions = subAgent.Factory.ProvideAgentOptions(
-                _defaultOptions.DefaultOptions, _defaultOptions.DefaultContextProviders);
+                _defaultOptions.DefaultOptions, contextProviders);
 
             IChatClient chatClient = subAgent.Factory.CreateChatClient(agentOptions.ChatOptions ?? new ChatOptions())
                 ?? _defaultOptions.DefaultChatClient;
 
-            chatClient = BuildChatClient(chatClient);
+            chatClient = BuildChatClient(chatClient, subAgent.Options);
 
             AIAgent agent = new ChatClientAgent(chatClient, agentOptions, _loggerFactory, _services);
             agent = agent.AsDeepAgent();
 
             return subAgent.Factory.DecorateAgent(agent);
+        }
 
-            IChatClient BuildChatClient(IChatClient client)
+        private IChatClient BuildChatClient(IChatClient client, SubAgentOptions? options)
+        {
+            ChatClientBuilder builder = client.AsBuilder();
+
+            builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(_defaultOptions.DeepAgentOptions, _loggerFactory, _services));
+
+            if (options is not null)
             {
-                ChatClientBuilder builder = client.AsBuilder();
+                IFunctionCallPreValidValidator validator = CreateFunctionCallPreValidValidator(options);
+                builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(validator));
 
-                builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(_defaultOptions.DeepAgentOptions, _loggerFactory, _services));
+                builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
 
+                if (options.Compaction is not null)
+                    builder.Use(inner => inner.AsCompactionChatClient(options.Compaction));
+            }
+            else
+            {
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
-                {
                     builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
-                }
-
-                builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
-
-                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
-                {
-                    builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
-                }
 
                 if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
-                {
                     builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
-                }
 
-                return builder.Build();
+                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
+                    builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
             }
+
+            builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
+
+            return builder.Build();
+        }
+
+        private static IList<AIContextProvider> ResolveContextProviders(SubAgentOptions options)
+        {
+            List<AIContextProvider> providers = [new TodoListProvider(options.TodoList)];
+
+            if (options.FileSystem is not null)
+                providers.Add(new FileSystemProvider(options.FileSystem));
+
+            return providers;
+        }
+
+        private static IFunctionCallPreValidValidator CreateFunctionCallPreValidValidator(SubAgentOptions options)
+        {
+            FunctionCallPreValidValidator validator = new();
+
+            if (options.FileSystem is not null)
+                new FileSystemPreValidator(options.FileSystem.Access).Register(validator);
+
+            return validator;
         }
 
         private SubAgentSessionEntry? TryGetSessionEntry(string taskId)
