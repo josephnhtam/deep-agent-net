@@ -13,8 +13,8 @@ namespace DeepAgentNet.FileSystems
         [LoggerMessage(LogLevel.Debug, "Reading file {Path} (Offset: {Offset} Limit: {Limit})")]
         public static partial void ReadingFile(this ILogger<FileSystemAccess> logger, string path, int offset, int? limit);
 
-        [LoggerMessage(LogLevel.Debug, "Reading raw file {Path}")]
-        public static partial void ReadingRawFile(this ILogger<FileSystemAccess> logger, string path);
+        [LoggerMessage(LogLevel.Debug, "Reading data {Path}")]
+        public static partial void ReadingData(this ILogger<FileSystemAccess> logger, string path);
 
         [LoggerMessage(LogLevel.Debug, "Executing grep for pattern '{Pattern}' in {Path} (Glob: {Glob})")]
         public static partial void ExecutingGrep(this ILogger<FileSystemAccess> logger, string pattern, string path, string glob);

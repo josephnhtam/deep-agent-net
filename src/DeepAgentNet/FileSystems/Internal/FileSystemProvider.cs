@@ -17,6 +17,7 @@ namespace DeepAgentNet.FileSystems.Internal
 
             ListInfoToolProvider listInfoToolProvider = new(options.Access, options.LsToolOptions);
             FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions);
+            FileGetDataToolProvider fileGetDataToolProvider = new(options.Access, options.ReadFileDataToolOptions, fileLocks);
             FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions, fileLocks);
             FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions, fileLocks);
             FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions, fileLocks);
@@ -28,6 +29,7 @@ namespace DeepAgentNet.FileSystems.Internal
             [
                 listInfoToolProvider.Tool,
                 fileReadToolProvider.Tool,
+                fileGetDataToolProvider.Tool,
                 fileWriteToolProvider.Tool,
                 fileOverwriteToolProvider.Tool,
                 fileEditToolProvider.Tool,

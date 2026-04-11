@@ -443,7 +443,14 @@ namespace DeepAgentNet.FileSystems
                 ModifiedAt: fileInfo.LastWriteTime));
         }
 
-        private async IAsyncEnumerable<string> ReadLineAsync(string fullPath, [EnumeratorCancellation] CancellationToken cancellationToken)
+        public ValueTask<Stream> ReadDataAsync(string filePath, CancellationToken cancellationToken = default)
+        {
+            string fullPath = ResolveFullPath(filePath);
+            _logger?.ReadingData(fullPath);
+            return new(OpenFile(fullPath));
+        }
+
+        private FileStream OpenFile(string fullPath)
         {
             FileInfo fileInfo = new(fullPath);
 
@@ -453,14 +460,16 @@ namespace DeepAgentNet.FileSystems
             if (fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint))
                 throw new IOException("Symlinks are not allowed");
 
-            if (fileInfo.Length == 0)
-                yield break;
+            return new FileStream(fileInfo.FullName, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+        }
 
+        private async IAsyncEnumerable<string> ReadLineAsync(string fullPath, [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
             FileStream stream;
 
             try
             {
-                stream = new(fullPath, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, useAsync: true);
+                stream = OpenFile(fullPath);
             }
             catch (Exception ex)
             {

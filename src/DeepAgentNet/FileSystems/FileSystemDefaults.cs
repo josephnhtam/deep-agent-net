@@ -6,6 +6,8 @@ namespace DeepAgentNet.FileSystems
 
         public const string ReadFileToolName = "read_file";
 
+        public const string ReadFileDataToolName = "read_file_data";
+
         public const string WriteFileToolName = "write_file";
 
         public const string EditFileToolName = "edit_file";
@@ -19,7 +21,7 @@ namespace DeepAgentNet.FileSystems
         public const string OverwriteFileToolName = "overwrite_file";
 
         public const string SystemPrompt = """
-            ## Filesystem Tools `ls`, `read_file`, `write_file`, `edit_file`, `glob`, `delete_file`, `grep`, `overwrite_file`
+            ## Filesystem Tools `ls`, `read_file`, `read_file_data`, `write_file`, `edit_file`, `glob`, `delete_file`, `grep`, `overwrite_file`
 
             You have access to a filesystem which you can interact with using these tools.
             All file paths must start with a /.
@@ -27,7 +29,8 @@ namespace DeepAgentNet.FileSystems
             When reading files, results are returned with each line prefixed by a padded line number followed by an arrow (→), starting at 1. The line number prefix format is: spaces + line number + arrow (→). Treat the line number prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
 
             - ls: list files and directories in a path (supports recursive listing)
-            - read_file: read a file from the filesystem
+            - read_file: read a file from the filesystem (line-oriented text)
+            - read_file_data: read a file as raw bytes (attached for multimodal models when supported); use for binary files or when exact bytes are needed
             - write_file: write a new file to the filesystem
             - overwrite_file: replace the entire content of an existing file
             - edit_file: edit a file in the filesystem
@@ -47,9 +50,9 @@ namespace DeepAgentNet.FileSystems
             """;
 
         public const string ReadFileToolDescription = """
-            Reads a file from the filesystem.
+            Reads a text file from the filesystem, including source code, scripts, configuration, markup, and other text-based formats.
 
-            Assume this tool is able to read all files. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
+            Assume this tool is able to read all text files. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
 
             Usage:
             - By default, it reads up to 500 lines starting from the beginning of the file.
@@ -59,6 +62,20 @@ namespace DeepAgentNet.FileSystems
             - Results are returned with each line prefixed by its line number and an arrow (→). The line number prefix is metadata, not file content.
             - You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
             - You should ALWAYS make sure a file has been read before editing it.
+            - For binary files (images, PDFs, archives), use read_file_data instead.
+            """;
+
+        public const string ReadFileDataToolDescription = """
+            Reads a file from the filesystem as raw binary data.
+
+            Assume this tool is able to read all files. If the User provides a path to a file assume that path is valid. It is okay to read a file that does not exist; an error will be returned.
+
+            Usage:
+            - The result includes a short text summary plus the file content attached as binary data (e.g. image bytes).
+            - Use this for non-text files (images, PDFs, archives) or when byte-accurate content is required.
+            - For source code and plain text, prefer read_file, which returns line-numbered text.
+            - Very large files may exceed the maximum size and return an error; in that case, consider asking the user or using other tools.
+            - You have the capability to call multiple tools in a single response. It is always better to speculatively read multiple files as a batch that are potentially useful.
             """;
 
         public const string WriteFileToolDescription = """

@@ -149,7 +149,6 @@ namespace CodingAgentSample
                 return;
 
             Console.ResetColor();
-            Console.WriteLine();
             _inThinking = false;
         }
 

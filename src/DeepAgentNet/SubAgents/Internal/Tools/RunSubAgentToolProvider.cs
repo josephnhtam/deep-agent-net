@@ -143,11 +143,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             {
                 ChatClientBuilder builder = client.AsBuilder();
 
-                builder.Use(inner => inner.AsFunctionInvokingChatClient());
-
-                if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
+                if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
                 {
-                    builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
+                    builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
                 }
 
                 if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
@@ -155,9 +153,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
                 }
 
-                if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
+                if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                 {
-                    builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
+                    builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
                 }
 
                 return builder.Build();
