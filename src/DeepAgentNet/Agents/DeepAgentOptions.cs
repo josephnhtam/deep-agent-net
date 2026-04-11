@@ -13,7 +13,7 @@ namespace DeepAgentNet.Agents
         public CompactionProviderOptions? Compaction { get; init; }
 
         public int MaximumIterationsPerRequest { get; init; } = int.MaxValue;
-        public bool AllowConcurrentInvocation { get; init; } = true;
+        public bool AllowConcurrentInvocation { get; init; } = false;
         public int MaximumConsecutiveErrorsPerRequest { get; init; } = 3;
     }
 }

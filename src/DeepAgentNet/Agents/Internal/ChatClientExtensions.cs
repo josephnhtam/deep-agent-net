@@ -32,5 +32,15 @@ namespace DeepAgentNet.Agents.Internal
 
             return client;
         }
+
+        public static CallIdSetterChatClient AsCallIdSetterChatClient(this IChatClient chatClient)
+        {
+            if (chatClient.GetService<CallIdSetterChatClient>() is { } inner)
+            {
+                return inner;
+            }
+
+            return new CallIdSetterChatClient(chatClient);
+        }
     }
 }

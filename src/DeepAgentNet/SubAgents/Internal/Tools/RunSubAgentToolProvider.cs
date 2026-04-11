@@ -143,22 +143,24 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             {
                 ChatClientBuilder builder = client.AsBuilder();
 
-                if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
-                {
-                    builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
-                }
-
-                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
-                {
-                    builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
-                }
+                builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(_defaultOptions.DeepAgentOptions, _loggerFactory, _services));
 
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                 {
                     builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
                 }
 
-                builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(_defaultOptions.DeepAgentOptions, _loggerFactory, _services));
+                builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
+
+                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
+                {
+                    builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
+                }
+
+                if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
+                {
+                    builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
+                }
 
                 return builder.Build();
             }
