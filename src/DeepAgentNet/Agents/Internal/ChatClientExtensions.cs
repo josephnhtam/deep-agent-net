@@ -25,9 +25,9 @@ namespace DeepAgentNet.Agents.Internal
 
             var client = new FunctionInvokingChatClient(chatClient, loggerFactory, serviceProvider)
             {
-                MaximumIterationsPerRequest = options.MaximumIterationsPerRequest,
-                AllowConcurrentInvocation = options.AllowConcurrentInvocation,
-                MaximumConsecutiveErrorsPerRequest = options.MaximumConsecutiveErrorsPerRequest
+                MaximumIterationsPerRequest = options.FunctionInvocation.MaximumIterationsPerRequest,
+                AllowConcurrentInvocation = options.FunctionInvocation.AllowConcurrentInvocation,
+                MaximumConsecutiveErrorsPerRequest = options.FunctionInvocation.MaximumConsecutiveErrorsPerRequest
             };
 
             return client;

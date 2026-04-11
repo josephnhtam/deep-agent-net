@@ -84,17 +84,16 @@ if (!root.Exists) root.Create();
 var fileSystemAccess = new FileSystemAccess(root);
 var handle = new SubAgentHandle(channel.Writer);
 
-var deepAgentOptions = new DeepAgentOptions
-{
-    TodoList = new TodoListProviderOptions
+var deepAgentOptions = DeepAgentOptionsBuilder.Create()
+    .WithTodoList(new TodoListProviderOptions
     {
         OnTodosUpdatedAsync = (aid, todos, ct) =>
         {
             channel.Writer.TryWrite(new TodosUpdated(aid, todos));
             return ValueTask.CompletedTask;
         }
-    },
-    SubAgent = new SubAgentProviderOptions
+    })
+    .WithSubAgent(new SubAgentProviderOptions
     {
         GeneralPurposeAgent = new GeneralPurposeAgentOptions(handle)
         {
@@ -116,11 +115,11 @@ var deepAgentOptions = new DeepAgentOptions
                 Handle: handle,
                 Factory: new ExploreSubAgentFactory())
         ]
-    },
-    FileSystem = new FileSystemProviderOptions(fileSystemAccess),
-    Compaction = new CompactionProviderOptions(new PipelineCompactionStrategy(
-        [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))]))
-};
+    })
+    .WithFileSystem(new FileSystemProviderOptions(fileSystemAccess))
+    .WithCompaction(new CompactionProviderOptions(new PipelineCompactionStrategy(
+        [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))])))
+    .Build();
 
 var agent = chatClient.AsDeepAgent(
     agentOptions: new ChatClientAgentOptions

@@ -40,7 +40,8 @@ namespace DeepAgentNet.Agents
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
 
-            builder = builder.Use(inner => inner.AsTodoListChatClient(deepAgentOptions.TodoList));
+            if (deepAgentOptions.TodoList is not null)
+                builder = builder.Use(inner => inner.AsTodoListChatClient(deepAgentOptions.TodoList));
 
             if (deepAgentOptions.Compaction is not null)
                 builder = builder.Use(inner => inner.AsCompactionChatClient(deepAgentOptions.Compaction));
@@ -72,8 +73,8 @@ namespace DeepAgentNet.Agents
             return masterAgentOptions;
         }
 
-        private static TodoListProvider CreateTodoListProvider(DeepAgentOptions deepAgentOptions) =>
-            new(deepAgentOptions.TodoList);
+        private static TodoListProvider? CreateTodoListProvider(DeepAgentOptions deepAgentOptions) =>
+            deepAgentOptions.TodoList is not null ? new(deepAgentOptions.TodoList) : null;
 
         private static FileSystemProvider? CreateFileSystemProvider(DeepAgentOptions deepAgentOptions) =>
             deepAgentOptions.FileSystem != null ? new(deepAgentOptions.FileSystem) : null;

@@ -158,7 +158,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 IFunctionCallPreValidValidator validator = CreateFunctionCallPreValidValidator(options);
                 builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(validator));
 
-                builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
+                if (options.TodoList is not null)
+                    builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
 
                 if (options.Compaction is not null)
                     builder.Use(inner => inner.AsCompactionChatClient(options.Compaction));
@@ -182,7 +183,10 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
         private static IList<AIContextProvider> ResolveContextProviders(SubAgentOptions options)
         {
-            List<AIContextProvider> providers = [new TodoListProvider(options.TodoList)];
+            List<AIContextProvider> providers = [];
+
+            if (options.TodoList is not null)
+                providers.Add(new TodoListProvider(options.TodoList));
 
             if (options.FileSystem is not null)
                 providers.Add(new FileSystemProvider(options.FileSystem));
