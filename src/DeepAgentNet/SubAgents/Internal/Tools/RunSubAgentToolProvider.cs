@@ -158,6 +158,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
                 }
 
+                builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(_defaultOptions.DeepAgentOptions, _loggerFactory, _services));
+
                 return builder.Build();
             }
         }

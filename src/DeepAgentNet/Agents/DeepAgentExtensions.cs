@@ -20,7 +20,7 @@ namespace DeepAgentNet.Agents
             ILoggerFactory? loggerFactory = null,
             IServiceProvider? services = null)
         {
-            client = BuildChatClient(client, deepAgentOptions);
+            client = BuildChatClient(client, deepAgentOptions, loggerFactory, services);
             ChatClientAgentOptions defaultAgentOptions = agentOptions.Clone();
 
             ChatClientAgentOptions masterAgentOptions = CreateMasterAgentOptions(
@@ -30,7 +30,8 @@ namespace DeepAgentNet.Agents
             return agent.AsDeepAgent();
         }
 
-        private static IChatClient BuildChatClient(IChatClient client, DeepAgentOptions deepAgentOptions)
+        private static IChatClient BuildChatClient(
+            IChatClient client, DeepAgentOptions deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
         {
             ChatClientBuilder builder = client.AsBuilder();
 
@@ -41,6 +42,8 @@ namespace DeepAgentNet.Agents
 
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
+
+            builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(deepAgentOptions, loggerFactory, services));
 
             return builder.Build();
         }
@@ -79,7 +82,8 @@ namespace DeepAgentNet.Agents
             SubAgentDefaultOptions defaultOptions = new(
                 DefaultChatClient: client,
                 DefaultOptions: options,
-                DefaultContextProviders: CreateDefaultContextProviders()
+                DefaultContextProviders: CreateDefaultContextProviders(),
+                DeepAgentOptions: deepAgentOptions
             );
 
             return new SubAgentProvider(defaultOptions, deepAgentOptions.SubAgent, loggerFactory, services);

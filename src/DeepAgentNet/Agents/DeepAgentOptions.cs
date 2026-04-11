@@ -11,5 +11,9 @@ namespace DeepAgentNet.Agents
         public SubAgentProviderOptions? SubAgent { get; init; }
         public FileSystemProviderOptions? FileSystem { get; init; }
         public CompactionProviderOptions? Compaction { get; init; }
+
+        public int MaximumIterationsPerRequest { get; init; } = int.MaxValue;
+        public bool AllowConcurrentInvocation { get; init; } = true;
+        public int MaximumConsecutiveErrorsPerRequest { get; init; } = 3;
     }
 }

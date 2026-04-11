@@ -1,5 +1,6 @@
 using DeepAgentNet.Agents.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace DeepAgentNet.Agents.Internal
 {
@@ -13,6 +14,23 @@ namespace DeepAgentNet.Agents.Internal
             }
 
             return new FunctionCallPreValidatingChatClient(chatClient, validator);
+        }
+
+        public static FunctionInvokingChatClient AsFunctionInvokingChatClient(this IChatClient chatClient, DeepAgentOptions options, ILoggerFactory? loggerFactory = null, IServiceProvider? serviceProvider = null)
+        {
+            if (chatClient.GetService<FunctionInvokingChatClient>() is { } inner)
+            {
+                return inner;
+            }
+
+            var client = new FunctionInvokingChatClient(chatClient, loggerFactory, serviceProvider)
+            {
+                MaximumIterationsPerRequest = options.MaximumIterationsPerRequest,
+                AllowConcurrentInvocation = options.AllowConcurrentInvocation,
+                MaximumConsecutiveErrorsPerRequest = options.MaximumConsecutiveErrorsPerRequest
+            };
+
+            return client;
         }
     }
 }
