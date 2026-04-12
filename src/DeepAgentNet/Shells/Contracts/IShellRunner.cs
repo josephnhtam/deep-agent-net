@@ -1,5 +1,3 @@
-using DeepAgentNet.Shells.Internal;
-
 namespace DeepAgentNet.Shells.Contracts
 {
     public interface IShellRunner

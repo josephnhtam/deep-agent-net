@@ -1,4 +1,3 @@
-using System.Threading.Channels;
 using Azure.AI.OpenAI;
 using CodingAgentSample;
 using DeepAgentNet.Agents;
@@ -11,6 +10,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
 using System.ClientModel;
+using System.Threading.Channels;
 
 const string workspace = "./workspace";
 

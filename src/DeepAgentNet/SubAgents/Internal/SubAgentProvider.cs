@@ -53,12 +53,12 @@ namespace DeepAgentNet.SubAgents.Internal
                         SubAgentDefaults.GeneralPurposeAgentSystemPrompt);
 
                 subAgents.Add(new SubAgent(
-                    Name: SubAgentDefaults.GeneralPurposeAgentName,
-                    Description: options.GeneralPurposeAgent.Description ?? SubAgentDefaults.GeneralPurposeAgentDescription,
-                    Handle: options.GeneralPurposeAgent.Handle,
-                    Factory: factory
-                )
-                { Options = options.GeneralPurposeAgent.Options });
+                        Name: SubAgentDefaults.GeneralPurposeAgentName,
+                        Description: options.GeneralPurposeAgent.Description ?? SubAgentDefaults.GeneralPurposeAgentDescription,
+                        Handle: options.GeneralPurposeAgent.Handle,
+                        Factory: factory
+                    )
+                    { Options = options.GeneralPurposeAgent.Options });
             }
 
             if (options.SubAgents is { Count: > 0 })

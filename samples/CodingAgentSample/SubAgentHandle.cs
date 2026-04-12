@@ -1,8 +1,8 @@
-using System.Collections.Concurrent;
-using System.Threading.Channels;
 using DeepAgentNet.SubAgents.Contracts;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using System.Collections.Concurrent;
+using System.Threading.Channels;
 
 namespace CodingAgentSample
 {
