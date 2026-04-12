@@ -17,7 +17,7 @@ namespace DeepAgentNet.FileSystems.Internal
 
             ListInfoToolProvider listInfoToolProvider = new(options.Access, options.LsToolOptions);
             FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions);
-            FileGetDataToolProvider fileGetDataToolProvider = new(options.Access, options.ReadFileDataToolOptions, fileLocks);
+            FileGetDataToolProvider fileGetDataToolProvider = new(options.Access, options.DataLimitedToolOptions, fileLocks);
             FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions, fileLocks);
             FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions, fileLocks);
             FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions, fileLocks);
@@ -43,7 +43,8 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             return new(new AIContext
             {
-                Instructions = _options.SystemPrompt ?? FileSystemDefaults.SystemPrompt,
+                Instructions = _options.SystemPrompt?.Invoke(_options.Access.RootWorkingDirectory) ??
+                    FileSystemDefaults.GetSystemPrompt(_options.Access.RootWorkingDirectory),
                 Tools = _tools
             });
         }

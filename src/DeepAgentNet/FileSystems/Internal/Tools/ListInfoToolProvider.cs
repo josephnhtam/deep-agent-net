@@ -33,17 +33,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("Directory path to list (default: /)")]
-            string path = "/",
+            [Description("The absolute path to the directory to list")]
+            string path,
             [Description("Whether to list recursively (default: false)")]
             bool recursive = false,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(path))
-                    path = "/";
-
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
                     new TruncatingStringBuilder(
                         _options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken,

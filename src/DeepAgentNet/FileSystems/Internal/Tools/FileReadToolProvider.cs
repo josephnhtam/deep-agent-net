@@ -31,7 +31,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<Result> ExecuteAsync(
-            [Description("Path to the file to read")]
+            [Description("The absoulte path to the file to read")]
             string filePath,
             [Description("Line offset to start reading from (0-indexed)")]
             int offset = 0,

@@ -24,25 +24,31 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = FileSystemDefaults.GlobToolName,
-                Description = options.Description ?? FileSystemDefaults.GlobToolDescription
+                Description = options.Description ?? FileSystemDefaults.GlobToolDescription,
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions()
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions() => new()
+        {
+            ParameterDescriptionProvider = property => property.Name switch
+            {
+                "path" => $"The directory to search in. If not specified, the current working directory ({_access.RootWorkingDirectory}) will be used.",
+                _ => null
+            }
+        };
+
         private async ValueTask<string> ExecuteAsync(
             [Description("Glob pattern (e.g., '*.py', '**/*.ts')")]
             string pattern,
-            [Description("Base path to search from (default: /)")]
-            string path = "/",
+            [Description("")] string? path,
             CancellationToken cancellationToken = default)
         {
             try
             {
-                if (string.IsNullOrWhiteSpace(path))
-                    path = "/";
-
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
                     new TruncatingStringBuilder(
                         _options.ResultTokenLimit.Value * SharedConstants.ApproximateCharsPerToken,

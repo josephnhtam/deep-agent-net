@@ -11,8 +11,8 @@ namespace DeepAgentNet.Shared
         public int? ResultTokenLimit { get; init; } = 100_000;
     }
 
-    public record ReadFileDataToolOptions : ToolOptions
+    public record DataLimitedToolOptions : ToolOptions
     {
-        public long MaxBytes { get; init; } = 10_000_000;
+        public long ResultBytesLimit { get; init; } = 320_000_000;
     }
 }

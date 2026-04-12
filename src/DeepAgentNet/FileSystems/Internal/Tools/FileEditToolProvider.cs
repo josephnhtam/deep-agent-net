@@ -30,7 +30,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("The path to the file to edit")]
+            [Description("The absoulte path to the file to edit")]
             string filePath,
             [Description("The text to replace")] string oldString,
             [Description("The text to replace it with")]
@@ -52,7 +52,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 try
                 {
                     EditResult result = await _access.EditAsync(filePath, oldString, newString, replaceAll, cancellationToken).ConfigureAwait(false);
-                    FileToolGuards.UpdateReadStateAsync(filePath, _access);
+                    await FileToolGuards.UpdateReadStateAsync(filePath, _access, cancellationToken);
 
                     return replaceAll
                         ? $"The file '{filePath}' has been updated. All occurrences ({result.Occurrences}) were successfully replaced."

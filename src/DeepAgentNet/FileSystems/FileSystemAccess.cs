@@ -1,4 +1,5 @@
 using DeepAgentNet.FileSystems.Contracts;
+using DeepAgentNet.Shared.Internal;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -11,22 +12,24 @@ namespace DeepAgentNet.FileSystems
 
     public class FileSystemAccess : IFileSystemAccess
     {
-        private readonly string _rootPath;
         private readonly FileSystemAccessOptions _options;
         private readonly ILogger<FileSystemAccess>? _logger;
 
-        public FileSystemAccess(DirectoryInfo root, FileSystemAccessOptions? options = null, ILoggerFactory? loggerFactory = null)
+        public string RootWorkingDirectory { get; }
+
+        public FileSystemAccess(DirectoryInfo rootWorkingDirectory, FileSystemAccessOptions? options = null, ILoggerFactory? loggerFactory = null)
         {
-            _rootPath = root.FullName;
+            RootWorkingDirectory = rootWorkingDirectory.FullName;
             _options = options ?? new FileSystemAccessOptions();
             _logger = loggerFactory?.CreateLogger<FileSystemAccess>();
         }
 
         private string ResolveFullPath(string path)
         {
-            string fullPath = Path.GetFullPath(Path.Combine(_rootPath, path.Replace('\\', '/').TrimStart('/')));
+            string fullPath = Path.IsPathFullyQualified(path) ?
+                path : Path.GetFullPath(Path.Combine(RootWorkingDirectory, PathHelper.NormalizePath(path)));
 
-            if (_options.RestrictToRoot && !fullPath.StartsWith(_rootPath))
+            if (_options.RestrictToRoot && !fullPath.StartsWith(RootWorkingDirectory))
             {
                 _logger?.AccessOutsideRoot(path);
                 throw new UnauthorizedAccessException($"Access to path '{path}' is denied.");

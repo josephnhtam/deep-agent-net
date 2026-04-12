@@ -20,8 +20,10 @@ namespace DeepAgentNet.FileSystems
 
         public const string OverwriteFileToolName = "overwrite_file";
 
-        public const string SystemPrompt = """
+        public static string GetSystemPrompt(string workingDirectory) => $"""
             ## Filesystem Tools `ls`, `read_file`, `read_file_data`, `write_file`, `edit_file`, `glob`, `delete_file`, `grep`, `overwrite_file`
+
+            Working directory: {workingDirectory}
 
             You have access to a filesystem which you can interact with using these tools.
             All file paths must start with a /.

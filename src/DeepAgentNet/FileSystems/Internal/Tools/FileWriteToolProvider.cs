@@ -30,7 +30,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("Path to the file to write")]
+            [Description("The absoulte path to the file to write")]
             string filePath,
             [Description("Content to write to the file")]
             string content,

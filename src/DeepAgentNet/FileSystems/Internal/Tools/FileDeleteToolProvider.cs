@@ -30,7 +30,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<string> ExecuteAsync(
-            [Description("Path to the file to delete")]
+            [Description("The absoulte path to the file to delete")]
             string filePath,
             CancellationToken cancellationToken = default)
         {

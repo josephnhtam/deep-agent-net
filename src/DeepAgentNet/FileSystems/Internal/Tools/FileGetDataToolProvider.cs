@@ -11,12 +11,12 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     internal class FileGetDataToolProvider : IToolProvider
     {
         private readonly IFileSystemAccess _access;
-        private readonly ReadFileDataToolOptions _options;
+        private readonly DataLimitedToolOptions _options;
         private readonly IFileLocks _fileLocks;
 
         public AITool Tool { get; }
 
-        internal FileGetDataToolProvider(IFileSystemAccess access, ReadFileDataToolOptions options, IFileLocks fileLocks)
+        internal FileGetDataToolProvider(IFileSystemAccess access, DataLimitedToolOptions options, IFileLocks fileLocks)
         {
             _access = access;
             _options = options;
@@ -33,7 +33,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         }
 
         private async ValueTask<IEnumerable<AIContent>> ExecuteAsync(
-            [Description("Path to the file to read as raw bytes")]
+            [Description("The absoulte path to the file to read as raw bytes")]
             string filePath,
             CancellationToken cancellationToken = default)
         {
@@ -45,12 +45,12 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 {
                     await using Stream stream = await _access.ReadDataAsync(filePath, cancellationToken).ConfigureAwait(false);
 
-                    if (stream.CanSeek && stream.Length > _options.MaxBytes)
-                    {
-                        return [new TextContent($"Error: file exceeds maximum size of {_options.MaxBytes} bytes.")];
-                    }
-
                     long byteLength = stream.CanSeek ? stream.Length : 0;
+
+                    if (byteLength > _options.ResultBytesLimit)
+                    {
+                        return [new TextContent($"Error: file exceeds maximum size of {_options.ResultBytesLimit} bytes.")];
+                    }
 
                     string? mediaType = GuessMediaType(filePath);
                     DataContent dataContent = await DataContent.LoadFromAsync(stream, mediaType, cancellationToken).ConfigureAwait(false);
