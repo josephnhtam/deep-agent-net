@@ -10,7 +10,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var state = ContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            var state = AgentContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
             if (state is null || !state.HasBeenRead(filePath))
                 return "Error: File has not been read yet. Use read_file first before editing.";
@@ -26,7 +26,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var state = ContextAccessor.Session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
+            var state = AgentContextAccessor.Session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
 
             int lastSlash = filePath.LastIndexOf('/');
             string parentDir = lastSlash > 0 ? filePath[..lastSlash] : "/";
@@ -41,7 +41,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var state = ContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            var state = AgentContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
             DateTime lastWriteTime = await GetLastWriteTimeUtc(filePath, access, cancellationToken) ?? DateTime.UtcNow;
             state?.RecordRead(filePath, lastWriteTime);
@@ -49,7 +49,7 @@ namespace DeepAgentNet.FileSystems.Internal
 
         public static async ValueTask RecordFileReadAsync(string filePath, IFileSystemAccess access, CancellationToken cancellationToken)
         {
-            var session = ContextAccessor.Session;
+            var session = AgentContextAccessor.Session;
             if (session is null)
                 return;
 

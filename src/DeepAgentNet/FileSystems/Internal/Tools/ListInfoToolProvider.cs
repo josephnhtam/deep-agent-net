@@ -85,7 +85,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         private static LsState? GetOrCreateLsState()
         {
-            var session = ContextAccessor.Session;
+            var session = AgentContextAccessor.Session;
             if (session is null)
                 return null;
 

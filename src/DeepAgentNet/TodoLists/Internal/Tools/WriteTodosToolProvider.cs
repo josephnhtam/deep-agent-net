@@ -53,7 +53,7 @@ namespace DeepAgentNet.TodoLists.Internal.Tools
 
         private static void UpdateSessionTodoList(List<Todo> todos)
         {
-            AgentSession? session = ContextAccessor.Session;
+            AgentSession? session = AgentContextAccessor.Session;
 
             if (session is null)
                 return;
