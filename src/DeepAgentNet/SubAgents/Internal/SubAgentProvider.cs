@@ -21,7 +21,7 @@ namespace DeepAgentNet.SubAgents.Internal
             List<SubAgent> subAgents = CreateSubAgents(_options);
             if (subAgents.Any())
             {
-                _runSubAgentToolProvider = new(subAgents, defaultOptions, _options.ToolDescription, loggerFactory, services);
+                _runSubAgentToolProvider = new(subAgents, defaultOptions, _options.TaskToolDescription, loggerFactory, services);
                 _tools.Add(_runSubAgentToolProvider.Tool);
             }
         }

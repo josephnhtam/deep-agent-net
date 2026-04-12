@@ -39,8 +39,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
             Tool = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
-                Name = SubAgentDefaults.ToolName,
-                Description = description?.Invoke(subAgents) ?? SubAgentDefaults.GetToolDescription(subAgents),
+                Name = SubAgentDefaults.TaskToolName,
+                Description = description?.Invoke(subAgents) ?? SubAgentDefaults.GetTaskToolDescription(subAgents),
                 JsonSchemaCreateOptions = JsonSchemaCreateOptions(subAgents)
             });
         }

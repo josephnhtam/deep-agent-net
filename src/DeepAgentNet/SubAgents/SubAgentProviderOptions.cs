@@ -5,7 +5,7 @@ namespace DeepAgentNet.SubAgents
     public record SubAgentProviderOptions
     {
         public string? SystemPrompt { get; init; }
-        public Func<IList<SubAgent>, string>? ToolDescription { get; init; }
+        public Func<IList<SubAgent>, string>? TaskToolDescription { get; init; }
         public GeneralPurposeAgentOptions? GeneralPurposeAgent { get; init; }
         public IReadOnlyList<SubAgent>? SubAgents { get; init; }
     }
