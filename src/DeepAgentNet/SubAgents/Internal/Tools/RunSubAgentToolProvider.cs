@@ -4,6 +4,7 @@ using DeepAgentNet.Agents.Internal.Contracts;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared.Contracts;
+using DeepAgentNet.Shells.Internal;
 using DeepAgentNet.TodoLists.Internal;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
@@ -55,7 +56,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
         {
             ParameterDescriptionProvider = property => property.Name switch
             {
-                "subAgentType" => $"The name of the agent to use. Available: {string.Join(", ", subAgents.Select(a => a.Name))}",
+                "subAgentType" => $"The name of the agent to use. Available: {string.Join(", ", subAgents.Select(a => $"'{a.Name}'"))}",
                 "taskId" => "Set only to resume a previous task. Pass the task_id from a prior result to continue that subagent session.",
                 _ => null
             }
@@ -75,7 +76,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             ResolvedSubAgent? resolvedSubAgent = await TryResolveSubAgentAsync(taskId, subAgentType, cancellationToken).ConfigureAwait(false);
 
             if (!resolvedSubAgent.HasValue)
-                return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys)}";
+                return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys.Select(k => $"'{k}'"))}";
 
             (SubAgent subAgent, AIAgent agent, AgentSession session, string resolvedTaskId, bool resumed) = resolvedSubAgent.Value;
 
@@ -151,7 +152,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
         {
             ChatClientBuilder builder = client.AsBuilder();
 
-            builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(_defaultOptions.DeepAgentOptions, _loggerFactory, _services));
+            builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(
+                options?.FunctionInvocation ?? _defaultOptions.DeepAgentOptions.FunctionInvocation,
+                _loggerFactory, _services));
 
             if (options is not null)
             {
@@ -190,6 +193,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
             if (options.FileSystem is not null)
                 providers.Add(new FileSystemProvider(options.FileSystem));
+
+            if (options.Shell is not null)
+                providers.Add(new ShellProvider(options.Shell));
 
             return providers;
         }

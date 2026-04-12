@@ -4,10 +4,10 @@ namespace DeepAgentNet.SubAgents
     {
         public const string TaskToolName = "task";
 
-        public const string SystemPrompt = $"""
-            ## `{TaskToolName}` (subagent spawner)
+        public const string SystemPrompt = """
+            ## `task` (subagent spawner)
 
-            You have access to a `{TaskToolName}` tool to launch subagents that handle isolated tasks. Each subagent runs autonomously and returns a single result. The tool accepts a short `description` (label) and a detailed `prompt` (the actual task instructions).
+            You have access to a `task` tool to launch subagents that handle isolated tasks. Each subagent runs autonomously and returns a single result. The tool accepts a short `description` (label) and a detailed `prompt` (the actual task instructions).
 
             Subagents can be **resumed**: each result includes a `task_id` that you can pass back via the `taskId` parameter to continue the same subagent session with its full prior context intact.
 
@@ -34,8 +34,8 @@ namespace DeepAgentNet.SubAgents
 
             ## Important Task Tool Usage Notes to Remember
             - Whenever possible, parallelize the work that you do. This is true for both tool_calls, and for tasks. Whenever you have independent steps to complete - make tool_calls, or kick off tasks (subagents) in parallel to accomplish them faster. This saves time for the user, which is incredibly important.
-            - Remember to use the `{TaskToolName}` tool to silo independent tasks within a multi-part objective.
-            - You should use the `{TaskToolName}` tool whenever you have a complex task that will take multiple steps, and is independent from other tasks that the agent needs to complete. These agents are highly competent and efficient.
+            - Remember to use the `task` tool to silo independent tasks within a multi-part objective.
+            - You should use the `task` tool whenever you have a complex task that will take multiple steps, and is independent from other tasks that the agent needs to complete. These agents are highly competent and efficient.
             """;
 
         public static string GetTaskToolDescription(IList<SubAgent> subAgents) =>
@@ -77,7 +77,7 @@ namespace DeepAgentNet.SubAgents
 
             <example>
             User: "Analyze a single large code repository for security vulnerabilities and generate a report."
-            Assistant: *Launches a single `{{TaskToolName}}` subagent for the repository analysis*
+            Assistant: *Launches a single `{task}` subagent for the repository analysis*
             Assistant: *Receives report and integrates results into final summary*
             <commentary>
             Subagent is used to isolate a large, context-heavy task, even though there is only one. This prevents the main thread from being overloaded with details.
@@ -87,7 +87,7 @@ namespace DeepAgentNet.SubAgents
 
             <example>
             User: "Schedule two meetings for me and prepare agendas for each."
-            Assistant: *Calls the task tool in parallel to launch two `{{TaskToolName}}` subagents (one per meeting) to prepare agendas*
+            Assistant: *Calls the task tool in parallel to launch two `{task}` subagents (one per meeting) to prepare agendas*
             Assistant: *Returns final schedules and agendas*
             <commentary>
             Tasks are simple individually, but subagents help silo agenda preparation.
@@ -100,7 +100,7 @@ namespace DeepAgentNet.SubAgents
             Assistant: *Calls tools directly in parallel to order a pizza from Dominos, a burger from McDonald's, and a salad from Subway*
             <commentary>
             The assistant did not use the task tool because the objective is super simple and clear and only requires a few trivial tool calls.
-            It is better to just complete the task directly and NOT use the `{{TaskToolName}}`tool.
+            It is better to just complete the task directly and NOT use the `{task}`tool.
             </commentary>
             </example>
 

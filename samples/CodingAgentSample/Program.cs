@@ -4,6 +4,7 @@ using CodingAgentSample;
 using DeepAgentNet.Agents;
 using DeepAgentNet.Compactions;
 using DeepAgentNet.FileSystems;
+using DeepAgentNet.Shells;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.TodoLists;
 using Microsoft.Agents.AI;
@@ -117,6 +118,7 @@ var deepAgentOptions = DeepAgentOptionsBuilder.Create()
         ]
     })
     .WithFileSystem(new FileSystemProviderOptions(fileSystemAccess))
+    .WithShell(new ShellProviderOptions(new LocalShellResolver()))
     .WithCompaction(new CompactionProviderOptions(new PipelineCompactionStrategy(
         [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))])))
     .Build();

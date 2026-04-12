@@ -6,10 +6,10 @@ namespace DeepAgentNet.TodoLists
 
         public const int DefaultReminderTurnThreshold = 5;
 
-        public const string SystemPrompt = $"""
-            ## `{ToolName}`
+        public const string SystemPrompt = """
+            ## `write_todos`
 
-            You have access to the `{ToolName}` tool to help you manage and plan complex objectives. 
+            You have access to the `write_todos` tool to help you manage and plan complex objectives. 
             Use this tool for complex objectives to ensure that you are tracking each necessary step and giving the user visibility into your progress.
             This tool is very helpful for planning complex objectives, and for breaking down these larger complex objectives into smaller steps.
 
@@ -18,7 +18,7 @@ namespace DeepAgentNet.TodoLists
             Writing todos takes time and tokens, use it when it is helpful for managing complex many-step problems! But not for simple few-step requests.
 
             ## Important To-Do List Usage Notes to Remember
-            - The `{ToolName}` tool should never be called multiple times in parallel.
+            - The `write_todos` tool should never be called multiple times in parallel.
             - Don't be afraid to revise the To-Do list as you go. New information may reveal new tasks that need to be done, or old tasks that are irrelevant. Mark irrelevant tasks as cancelled rather than silently removing them.
             """;
 

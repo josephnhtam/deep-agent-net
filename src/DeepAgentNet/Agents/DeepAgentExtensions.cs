@@ -2,6 +2,7 @@ using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.Agents.Internal.Contracts;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
+using DeepAgentNet.Shells.Internal;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.SubAgents.Internal;
 using DeepAgentNet.TodoLists.Internal;
@@ -35,7 +36,7 @@ namespace DeepAgentNet.Agents
         {
             ChatClientBuilder builder = client.AsBuilder();
 
-            builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(deepAgentOptions, loggerFactory, services));
+            builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(deepAgentOptions.FunctionInvocation, loggerFactory, services));
 
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
@@ -67,7 +68,8 @@ namespace DeepAgentNet.Agents
                 CollectContextProviders(
                     CreateTodoListProvider(deepAgentOptions),
                     CreateSubAgentProvider(client, defaultAgentOptions, deepAgentOptions, loggerFactory, services),
-                    CreateFileSystemProvider(deepAgentOptions)
+                    CreateFileSystemProvider(deepAgentOptions),
+                    CreateShellProvider(deepAgentOptions)
                 );
 
             return masterAgentOptions;
@@ -78,6 +80,9 @@ namespace DeepAgentNet.Agents
 
         private static FileSystemProvider? CreateFileSystemProvider(DeepAgentOptions deepAgentOptions) =>
             deepAgentOptions.FileSystem != null ? new(deepAgentOptions.FileSystem) : null;
+
+        private static ShellProvider? CreateShellProvider(DeepAgentOptions deepAgentOptions) =>
+            deepAgentOptions.Shell != null ? new(deepAgentOptions.Shell) : null;
 
         private static AIContextProvider CreateSubAgentProvider(IChatClient client, ChatClientAgentOptions options,
             DeepAgentOptions deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
@@ -93,7 +98,8 @@ namespace DeepAgentNet.Agents
 
             List<AIContextProvider> CreateDefaultContextProviders() => CollectContextProviders(
                 CreateTodoListProvider(deepAgentOptions),
-                CreateFileSystemProvider(deepAgentOptions)
+                CreateFileSystemProvider(deepAgentOptions),
+                CreateShellProvider(deepAgentOptions)
             );
         }
 

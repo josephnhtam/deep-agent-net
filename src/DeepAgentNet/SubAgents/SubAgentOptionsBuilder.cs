@@ -1,5 +1,7 @@
+using DeepAgentNet.Agents;
 using DeepAgentNet.Compactions;
 using DeepAgentNet.FileSystems;
+using DeepAgentNet.Shells;
 using DeepAgentNet.TodoLists;
 
 namespace DeepAgentNet.SubAgents
@@ -9,6 +11,8 @@ namespace DeepAgentNet.SubAgents
         private TodoListProviderOptions? _todoListOptions;
         private FileSystemProviderOptions? _fileSystemOptions;
         private CompactionProviderOptions? _compactionOptions;
+        private ShellProviderOptions? _shellOptions;
+        private FunctionInvocationOptions? _functionInvocationOptions;
 
         public static SubAgentOptionsBuilder Create() => new();
 
@@ -32,13 +36,27 @@ namespace DeepAgentNet.SubAgents
             return this;
         }
 
+        public SubAgentOptionsBuilder WithShell(ShellProviderOptions options)
+        {
+            _shellOptions = options;
+            return this;
+        }
+
+        public SubAgentOptionsBuilder ConfigureFunctionInvocation(FunctionInvocationOptions? options)
+        {
+            _functionInvocationOptions = options;
+            return this;
+        }
+
         public SubAgentOptions Build()
         {
             return new SubAgentOptions
             {
                 TodoList = _todoListOptions,
                 FileSystem = _fileSystemOptions,
-                Compaction = _compactionOptions
+                Compaction = _compactionOptions,
+                Shell = _shellOptions,
+                FunctionInvocation = _functionInvocationOptions,
             };
         }
     }

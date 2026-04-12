@@ -16,7 +16,7 @@ namespace DeepAgentNet.Agents.Internal
             return new FunctionCallPreValidatingChatClient(chatClient, validator);
         }
 
-        public static FunctionInvokingChatClient AsFunctionInvokingChatClient(this IChatClient chatClient, DeepAgentOptions options, ILoggerFactory? loggerFactory = null, IServiceProvider? serviceProvider = null)
+        public static FunctionInvokingChatClient AsFunctionInvokingChatClient(this IChatClient chatClient, FunctionInvocationOptions options, ILoggerFactory? loggerFactory = null, IServiceProvider? serviceProvider = null)
         {
             if (chatClient.GetService<FunctionInvokingChatClient>() is { } inner)
             {
@@ -25,9 +25,9 @@ namespace DeepAgentNet.Agents.Internal
 
             var client = new FunctionInvokingChatClient(chatClient, loggerFactory, serviceProvider)
             {
-                MaximumIterationsPerRequest = options.FunctionInvocation.MaximumIterationsPerRequest,
-                AllowConcurrentInvocation = options.FunctionInvocation.AllowConcurrentInvocation,
-                MaximumConsecutiveErrorsPerRequest = options.FunctionInvocation.MaximumConsecutiveErrorsPerRequest
+                MaximumIterationsPerRequest = options.MaximumIterationsPerRequest,
+                AllowConcurrentInvocation = options.AllowConcurrentInvocation,
+                MaximumConsecutiveErrorsPerRequest = options.MaximumConsecutiveErrorsPerRequest
             };
 
             return client;
