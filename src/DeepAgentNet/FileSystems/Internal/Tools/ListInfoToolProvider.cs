@@ -4,6 +4,7 @@ using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
+using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 using FileSystemInfo = DeepAgentNet.FileSystems.Contracts.FileSystemInfo;
@@ -82,7 +83,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         private static LsState? GetOrCreateLsState()
         {
-            var session = AgentContextAccessor.Session;
+            var session = AIAgent.CurrentRunContext?.Session;
             if (session is null)
                 return null;
 

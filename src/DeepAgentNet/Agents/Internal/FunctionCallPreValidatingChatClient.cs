@@ -6,8 +6,6 @@ namespace DeepAgentNet.Agents.Internal
 {
     internal class FunctionCallPreValidatingChatClient : DelegatingChatClient
     {
-        private static AsyncLocal<FunctionCallPreValidatingContext> _currentContext = new();
-        public static FunctionCallPreValidatingContext? CurrentContext => _currentContext.Value;
         public IFunctionCallPreValidValidator FunctionCallPreValidator { get; }
 
         private const string KeyPreValidationRejected = "PreValidationRejected";
@@ -31,8 +29,6 @@ namespace DeepAgentNet.Agents.Internal
                 cancellationToken.ThrowIfCancellationRequested();
 
                 ChatResponse response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
-
-                _currentContext.Value = new FunctionCallPreValidatingContext(options);
 
                 bool preValidationRejected = false;
 
@@ -90,7 +86,6 @@ namespace DeepAgentNet.Agents.Internal
                 await foreach (ChatResponseUpdate update in
                     base.GetStreamingResponseAsync(chatMessages, options, cancellationToken))
                 {
-                    _currentContext.Value = new FunctionCallPreValidatingContext(options);
                     ChatMessage? addedMessage = await ProcessFunctionCallPreValidationAsync(update.Contents, cancellationToken);
 
                     updates.Add(update);
@@ -238,6 +233,4 @@ namespace DeepAgentNet.Agents.Internal
             messages = augmentedHistory;
         }
     }
-
-    internal record struct FunctionCallPreValidatingContext(ChatOptions? Options);
 }

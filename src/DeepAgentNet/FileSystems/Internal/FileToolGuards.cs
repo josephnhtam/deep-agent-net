@@ -1,6 +1,7 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.Shared.Internal;
+using Microsoft.Agents.AI;
 
 namespace DeepAgentNet.FileSystems.Internal
 {
@@ -10,7 +11,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var state = AgentContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            var state = AIAgent.CurrentRunContext?.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
             if (state is null || !state.HasBeenRead(filePath))
                 return "Error: File has not been read yet. Use read_file first before editing.";
@@ -26,7 +27,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var state = AgentContextAccessor.Session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
+            var state = AIAgent.CurrentRunContext?.Session?.StateBag.GetValue<LsState>(LsState.StateBagKey);
 
             int lastSlash = filePath.LastIndexOf('/');
             string parentDir = lastSlash > 0 ? filePath[..lastSlash] : "/";
@@ -41,7 +42,7 @@ namespace DeepAgentNet.FileSystems.Internal
         {
             filePath = PathHelper.NormalizePath(filePath);
 
-            var state = AgentContextAccessor.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
+            var state = AIAgent.CurrentRunContext?.Session?.StateBag.GetValue<FileReadState>(FileReadState.StateBagKey);
 
             DateTime lastWriteTime = await GetLastWriteTimeUtc(filePath, access, cancellationToken) ?? DateTime.UtcNow;
             state?.RecordRead(filePath, lastWriteTime);
@@ -49,7 +50,7 @@ namespace DeepAgentNet.FileSystems.Internal
 
         public static async ValueTask RecordFileReadAsync(string filePath, IFileSystemAccess access, CancellationToken cancellationToken)
         {
-            var session = AgentContextAccessor.Session;
+            var session = AIAgent.CurrentRunContext?.Session;
             if (session is null)
                 return;
 

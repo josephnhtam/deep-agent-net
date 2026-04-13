@@ -89,7 +89,7 @@ namespace DeepAgentNet.TodoLists.Internal
 
         private static void IncrementTurnCounter(ChatOptions? options)
         {
-            AgentSession? session = options.GetSession();
+            AgentSession? session = AIAgent.CurrentRunContext?.Session;
             if (session is null)
                 return;
 
@@ -105,7 +105,7 @@ namespace DeepAgentNet.TodoLists.Internal
 
         private static TodoListState? GetTodoListState(ChatOptions? options)
         {
-            AgentSession? session = options.GetSession();
+            AgentSession? session = AIAgent.CurrentRunContext?.Session;
             return session?.StateBag.GetValue<TodoListState>(TodoListState.StateBagKey);
         }
     }
