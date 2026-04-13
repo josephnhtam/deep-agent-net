@@ -155,6 +155,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 options?.FunctionInvocation ?? _defaultOptions.DeepAgentOptions.FunctionInvocation,
                 _loggerFactory, _services));
 
+            builder.UsePerServiceCallChatHistoryPersistence();
+
             if (options is not null)
             {
                 IFunctionCallPreValidValidator validator = CreateFunctionCallPreValidValidator(options);

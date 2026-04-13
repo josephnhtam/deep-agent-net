@@ -38,6 +38,8 @@ namespace DeepAgentNet.Agents
 
             builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(deepAgentOptions.FunctionInvocation, loggerFactory, services));
 
+            builder.UsePerServiceCallChatHistoryPersistence();
+
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
 
