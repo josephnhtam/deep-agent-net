@@ -7,6 +7,7 @@ using DeepAgentNet.SubAgents;
 using DeepAgentNet.SubAgents.Internal;
 using DeepAgentNet.TodoLists.Internal;
 using Microsoft.Agents.AI;
+using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -38,8 +39,6 @@ namespace DeepAgentNet.Agents
 
             builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(deepAgentOptions.FunctionInvocation, loggerFactory, services));
 
-            builder.UsePerServiceCallChatHistoryPersistence();
-
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
 
@@ -47,7 +46,7 @@ namespace DeepAgentNet.Agents
                 builder = builder.Use(inner => inner.AsTodoListChatClient(deepAgentOptions.TodoList));
 
             if (deepAgentOptions.Compaction is not null)
-                builder = builder.Use(inner => inner.AsCompactionChatClient(deepAgentOptions.Compaction));
+                builder.UseCompactionProvider(deepAgentOptions.Compaction);
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
 

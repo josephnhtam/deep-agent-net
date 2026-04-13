@@ -155,8 +155,6 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 options?.FunctionInvocation ?? _defaultOptions.DeepAgentOptions.FunctionInvocation,
                 _loggerFactory, _services));
 
-            builder.UsePerServiceCallChatHistoryPersistence();
-
             if (options is not null)
             {
                 IFunctionCallPreValidValidator validator = CreateFunctionCallPreValidValidator(options);
@@ -166,18 +164,18 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
 
                 if (options.Compaction is not null)
-                    builder.Use(inner => inner.AsCompactionChatClient(options.Compaction));
+                    builder.UseCompactionProvider(options.Compaction);
             }
             else
             {
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                     builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
 
-                if (_parentAgent?.GetService<TodoListChatClient>() is { } todoListClient)
-                    builder.Use(inner => inner.AsTodoListChatClient(todoListClient.ProviderOptions));
+                if (_defaultOptions.DeepAgentOptions.TodoList is not null)
+                    builder.Use(inner => inner.AsTodoListChatClient(_defaultOptions.DeepAgentOptions.TodoList));
 
-                if (_parentAgent?.GetService<CompactionChatClient>() is { } compactionClient)
-                    builder.Use(inner => inner.AsCompactionChatClient(compactionClient.ProviderOptions));
+                if (_defaultOptions.DeepAgentOptions.Compaction is not null)
+                    builder.UseCompactionProvider(_defaultOptions.DeepAgentOptions.Compaction);
             }
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
