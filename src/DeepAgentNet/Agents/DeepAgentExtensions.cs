@@ -7,7 +7,6 @@ using DeepAgentNet.SubAgents;
 using DeepAgentNet.SubAgents.Internal;
 using DeepAgentNet.TodoLists.Internal;
 using Microsoft.Agents.AI;
-using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
@@ -20,9 +19,10 @@ namespace DeepAgentNet.Agents
             ChatClientAgentOptions agentOptions,
             DeepAgentOptions deepAgentOptions,
             ILoggerFactory? loggerFactory = null,
-            IServiceProvider? services = null)
+            IServiceProvider? services = null,
+            DecorateChatClientDelegate? decorateClient = null)
         {
-            client = BuildChatClient(client, deepAgentOptions, loggerFactory, services);
+            client = BuildChatClient(client, deepAgentOptions, loggerFactory, services, decorateClient);
             ChatClientAgentOptions defaultAgentOptions = agentOptions.Clone();
 
             ChatClientAgentOptions masterAgentOptions = CreateMasterAgentOptions(
@@ -33,7 +33,8 @@ namespace DeepAgentNet.Agents
         }
 
         private static IChatClient BuildChatClient(
-            IChatClient client, DeepAgentOptions deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services)
+            IChatClient client, DeepAgentOptions deepAgentOptions, ILoggerFactory? loggerFactory, IServiceProvider? services,
+            DecorateChatClientDelegate? decorateClient)
         {
             ChatClientBuilder builder = client.AsBuilder();
 
@@ -50,7 +51,7 @@ namespace DeepAgentNet.Agents
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
 
-            return builder.Build();
+            return decorateClient?.Invoke(builder.Build()) ?? builder.Build();
         }
 
         private static ChatClientAgentOptions CreateMasterAgentOptions(

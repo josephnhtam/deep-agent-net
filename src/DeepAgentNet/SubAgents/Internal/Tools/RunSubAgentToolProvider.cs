@@ -139,7 +139,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             IChatClient chatClient = subAgent.Factory.CreateChatClient(agentOptions.ChatOptions ?? new ChatOptions())
                 ?? _defaultOptions.DefaultChatClient;
 
-            chatClient = BuildChatClient(chatClient, subAgent.Options);
+            chatClient = BuildChatClient(chatClient, subAgent);
 
             AIAgent agent = new ChatClientAgent(chatClient, agentOptions, _loggerFactory, _services);
             agent = agent.AsDeepAgent();
@@ -147,9 +147,11 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             return subAgent.Factory.DecorateAgent(agent);
         }
 
-        private IChatClient BuildChatClient(IChatClient client, SubAgentOptions? options)
+        private IChatClient BuildChatClient(IChatClient client, SubAgent subAgent)
         {
             ChatClientBuilder builder = client.AsBuilder();
+
+            SubAgentOptions? options = subAgent.Options;
 
             builder = builder.Use(inner => inner.AsFunctionInvokingChatClient(
                 options?.FunctionInvocation ?? _defaultOptions.DeepAgentOptions.FunctionInvocation,
@@ -179,8 +181,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             }
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
-
-            return builder.Build();
+            return subAgent.Factory.DecorateChatClient(builder.Build());
         }
 
         private static IList<AIContextProvider> ResolveContextProviders(SubAgentOptions options)

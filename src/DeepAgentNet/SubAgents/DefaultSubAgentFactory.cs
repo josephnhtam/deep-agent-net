@@ -20,6 +20,7 @@ namespace DeepAgentNet.SubAgents
             return options;
         }
 
+        public IChatClient DecorateChatClient(IChatClient chatClient) => chatClient;
         public AIAgent DecorateAgent(AIAgent agent) => agent;
     }
 }
