@@ -6,7 +6,7 @@ namespace DeepAgentNet.Agents.Internal
 {
     internal static class ChatClientExtensions
     {
-        public static FunctionCallPreValidatingChatClient AsFunctionCallPreValidatingChatClient(this IChatClient chatClient, IFunctionCallPreValidValidator validator)
+        public static IChatClient AsFunctionCallPreValidatingChatClient(this IChatClient chatClient, IFunctionCallPreValidValidator validator)
         {
             if (chatClient.GetService<FunctionCallPreValidatingChatClient>() is { } inner)
             {

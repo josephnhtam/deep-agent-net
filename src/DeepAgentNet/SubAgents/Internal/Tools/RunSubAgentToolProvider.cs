@@ -1,5 +1,6 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.Agents.Internal.Contracts;
+using DeepAgentNet.ChatHistoryProviders.Internal;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared.Contracts;
@@ -141,6 +142,15 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
             chatClient = BuildChatClient(chatClient, subAgent);
 
+            if (_defaultOptions.DeepAgentOptions.Compaction is not null ||
+                subAgent.Options?.Compaction is not null)
+            {
+                agentOptions.ChatHistoryProvider = new NoOpChatHistoryProvider();
+                agentOptions.ThrowOnChatHistoryProviderConflict = false;
+            }
+
+            agentOptions.UseProvidedChatClientAsIs = true;
+
             AIAgent agent = new ChatClientAgent(chatClient, agentOptions, _loggerFactory, _services);
             agent = agent.AsDeepAgent();
 
@@ -166,7 +176,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
 
                 if (options.Compaction is not null)
-                    builder.UseCompactionProvider(options.Compaction);
+                {
+                    builder.UseCompactableChatHistory(options.Compaction);
+                }
             }
             else
             {
@@ -177,7 +189,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     builder.Use(inner => inner.AsTodoListChatClient(_defaultOptions.DeepAgentOptions.TodoList));
 
                 if (_defaultOptions.DeepAgentOptions.Compaction is not null)
-                    builder.UseCompactionProvider(_defaultOptions.DeepAgentOptions.Compaction);
+                {
+                    builder.UseCompactableChatHistory(_defaultOptions.DeepAgentOptions.Compaction);
+                }
             }
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());

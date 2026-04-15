@@ -85,7 +85,7 @@ namespace DeepAgentNet.FileSystems
 
             Usage:
             - The write_file tool will create a new file.
-            - You must list the parent directory (or an ancestor directory recursively) with ls before writing a new file. This tool will error if the parent directory has not been explored first.
+
             - Prefer to edit existing files (with the edit_file tool) over creating new ones when possible.
             """;
 

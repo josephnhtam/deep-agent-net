@@ -22,15 +22,19 @@ namespace DeepAgentNet.Agents.Internal
 
             List<ChatMessage> responseMessages = [];
             List<ChatMessage>? augmentedMessages = null;
+            List<ChatMessage>? addedMessages = null;
             bool lastIterationHadConversationId = false;
+            string? conversationId = null;
 
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
 
-                ChatResponse response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
-
                 bool preValidationRejected = false;
+                addedMessages?.Clear();
+
+                ChatResponse response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
+                conversationId = response.ConversationId ?? conversationId;
 
                 foreach (var message in response.Messages)
                 {
@@ -40,17 +44,9 @@ namespace DeepAgentNet.Agents.Internal
                     if (addedMessage is not null)
                     {
                         preValidationRejected = true;
+                        (addedMessages ??= []).Add(addedMessage);
                         response.Messages.Add(addedMessage);
                     }
-                }
-
-                responseMessages.AddRange(response.Messages);
-
-                if (!preValidationRejected ||
-                    HasUnprocessedFunctionCallRequest(response) ||
-                    HasToolApprovalRequest(response))
-                {
-                    return new ChatResponse(responseMessages);
                 }
 
                 FixupHistories(
@@ -59,8 +55,23 @@ namespace DeepAgentNet.Agents.Internal
                     ref augmentedMessages,
                     response,
                     responseMessages,
+                    addedMessages,
                     ref lastIterationHadConversationId
                 );
+
+                responseMessages.AddRange(response.Messages);
+
+                if (!preValidationRejected ||
+                    HasUnprocessedFunctionCallRequest(response) ||
+                    HasToolApprovalRequest(response))
+                {
+                    return new ChatResponse(responseMessages)
+                    {
+                        ConversationId = conversationId
+                    };
+                }
+
+                UpdateOptionsForNextIteration(ref options, response.ConversationId);
             }
         }
 
@@ -73,6 +84,7 @@ namespace DeepAgentNet.Agents.Internal
 
             List<ChatMessage> responseMessages = [];
             List<ChatMessage>? augmentedMessages = null;
+            List<ChatMessage>? addedMessages = null;
             bool lastIterationHadConversationId = false;
 
             List<ChatResponseUpdate> updates = [];
@@ -82,6 +94,7 @@ namespace DeepAgentNet.Agents.Internal
                 cancellationToken.ThrowIfCancellationRequested();
 
                 bool preValidationRejected = false;
+                addedMessages?.Clear();
 
                 await foreach (ChatResponseUpdate update in
                     base.GetStreamingResponseAsync(chatMessages, options, cancellationToken))
@@ -97,12 +110,25 @@ namespace DeepAgentNet.Agents.Internal
                             addedMessage, options?.ConversationId, addedMessage.MessageId);
 
                         preValidationRejected = true;
+                        (addedMessages ??= []).Add(addedMessage);
+
                         updates.Add(addedUpdate);
                         yield return addedUpdate;
                     }
                 }
 
                 ChatResponse response = updates.ToChatResponse();
+
+                FixupHistories(
+                    originalMessages,
+                    ref chatMessages,
+                    ref augmentedMessages,
+                    response,
+                    responseMessages,
+                    addedMessages,
+                    ref lastIterationHadConversationId
+                );
+
                 responseMessages.AddRange(response.Messages);
 
                 if (!preValidationRejected ||
@@ -112,15 +138,7 @@ namespace DeepAgentNet.Agents.Internal
                     break;
                 }
 
-                FixupHistories(
-                    originalMessages,
-                    ref chatMessages,
-                    ref augmentedMessages,
-                    response,
-                    responseMessages,
-                    ref lastIterationHadConversationId
-                );
-
+                UpdateOptionsForNextIteration(ref options, response.ConversationId);
                 updates.Clear();
             }
         }
@@ -193,12 +211,29 @@ namespace DeepAgentNet.Agents.Internal
             Role = message.Role,
         };
 
+        private static void UpdateOptionsForNextIteration(ref ChatOptions? options, string? conversationId)
+        {
+            if (conversationId is null)
+                return;
+
+            if (options is null)
+            {
+                options = new ChatOptions { ConversationId = conversationId };
+            }
+            else if (options.ConversationId != conversationId)
+            {
+                options = options.Clone();
+                options.ConversationId = conversationId;
+            }
+        }
+
         private static void FixupHistories(
             IEnumerable<ChatMessage> originalMessages,
             ref IList<ChatMessage> messages,
             ref List<ChatMessage>? augmentedHistory,
             ChatResponse response,
             List<ChatMessage> allTurnsResponseMessages,
+            List<ChatMessage>? addedMessages,
             ref bool lastIterationHadConversationId)
         {
             if (response.ConversationId is not null)
@@ -212,6 +247,11 @@ namespace DeepAgentNet.Agents.Internal
                     augmentedHistory = [];
                 }
 
+                if (addedMessages is not null)
+                {
+                    augmentedHistory.AddRange(addedMessages);
+                }
+
                 lastIterationHadConversationId = true;
             }
             else if (lastIterationHadConversationId)
@@ -220,6 +260,11 @@ namespace DeepAgentNet.Agents.Internal
                 augmentedHistory.Clear();
                 augmentedHistory.AddRange(originalMessages);
                 augmentedHistory.AddRange(allTurnsResponseMessages);
+
+                if (addedMessages is not null)
+                {
+                    augmentedHistory.AddRange(addedMessages);
+                }
 
                 lastIterationHadConversationId = false;
             }
