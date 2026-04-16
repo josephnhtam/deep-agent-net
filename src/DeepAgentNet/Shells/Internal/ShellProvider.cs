@@ -5,7 +5,7 @@ using Microsoft.Extensions.AI;
 
 namespace DeepAgentNet.Shells.Internal
 {
-    public class ShellProvider : AIContextProvider
+    internal class ShellProvider : AIContextProvider
     {
         private readonly ShellProviderOptions _options;
         private readonly List<AITool> _tools;

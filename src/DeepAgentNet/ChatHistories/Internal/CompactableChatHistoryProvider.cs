@@ -6,7 +6,7 @@ using Microsoft.Extensions.Logging;
 
 namespace DeepAgentNet.ChatHistories.Internal
 {
-    public class CompactableChatHistoryProvider : ChatHistoryProvider
+    internal class CompactableChatHistoryProvider : ChatHistoryProvider
     {
         private readonly CompactionProviderOptions _options;
         private readonly ChatHistoryProvider _inner;

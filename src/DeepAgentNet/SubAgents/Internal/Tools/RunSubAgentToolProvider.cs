@@ -3,7 +3,7 @@ using DeepAgentNet.Agents.Internal.Contracts;
 using DeepAgentNet.ChatHistories.Internal;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
-using DeepAgentNet.Shared.Contracts;
+using DeepAgentNet.Shared.Internal.Contracts;
 using DeepAgentNet.Shells.Internal;
 using DeepAgentNet.TodoLists.Internal;
 using Microsoft.Agents.AI;

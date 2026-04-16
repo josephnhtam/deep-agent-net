@@ -1,4 +1,5 @@
 using DeepAgentNet.FileSystems.Contracts;
+using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared.Internal;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;

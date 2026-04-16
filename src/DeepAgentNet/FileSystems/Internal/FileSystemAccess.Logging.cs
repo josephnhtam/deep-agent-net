@@ -1,6 +1,6 @@
 using Microsoft.Extensions.Logging;
 
-namespace DeepAgentNet.FileSystems
+namespace DeepAgentNet.FileSystems.Internal
 {
     internal static partial class FileSystemAccessLoggerExtensions
     {

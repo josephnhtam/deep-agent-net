@@ -1,5 +1,4 @@
-using DeepAgentNet.Agents.Internal;
-using DeepAgentNet.Shared.Contracts;
+using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;

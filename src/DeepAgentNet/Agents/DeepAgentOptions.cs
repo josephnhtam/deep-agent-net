@@ -4,7 +4,7 @@ using DeepAgentNet.Shells;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.TodoLists;
 
-namespace DeepAgentNet.Agents.Internal
+namespace DeepAgentNet.Agents
 {
     public class DeepAgentOptions
     {

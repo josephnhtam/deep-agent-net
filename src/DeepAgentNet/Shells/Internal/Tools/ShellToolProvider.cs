@@ -1,12 +1,12 @@
 using DeepAgentNet.Shared;
-using DeepAgentNet.Shared.Contracts;
+using DeepAgentNet.Shared.Internal.Contracts;
 using DeepAgentNet.Shells.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
 namespace DeepAgentNet.Shells.Internal.Tools
 {
-    public class ShellToolProvider : IToolProvider
+    internal class ShellToolProvider : IToolProvider
     {
         private readonly IReadOnlyDictionary<string, IShellRunner> _shellRunners;
         private readonly IReadOnlyList<string> _shellNames;

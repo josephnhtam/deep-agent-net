@@ -1,8 +1,8 @@
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.FileSystems.Internal.Contracts;
 using DeepAgentNet.Shared;
-using DeepAgentNet.Shared.Contracts;
 using DeepAgentNet.Shared.Internal;
+using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
