@@ -2,7 +2,7 @@ using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
 
-namespace DeepAgentNet.ChatHistoryProviders.Internal
+namespace DeepAgentNet.ChatHistories.Internal
 {
     internal class ChatHistoryChatClient : DelegatingChatClient
     {
@@ -47,24 +47,63 @@ namespace DeepAgentNet.ChatHistoryProviders.Internal
             List<ChatMessage> requestMessages = [.. fullMessages];
             List<ChatResponseUpdate> updates = [];
 
-            await foreach (var update in base.GetStreamingResponseAsync(requestMessages, options, cancellationToken))
+            IAsyncEnumerable<ChatResponseUpdate> streamingResponse =
+                base.GetStreamingResponseAsync(requestMessages, options, cancellationToken);
+
+            IAsyncEnumerator<ChatResponseUpdate> enumerator = streamingResponse.GetAsyncEnumerator(cancellationToken);
+
+            bool hasUpdates;
+            try
             {
+                hasUpdates = await enumerator.MoveNextAsync().ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                await NotifyProviderOfFailureAsync(agent, session, ex, requestMessages, cancellationToken).ConfigureAwait(false);
+                throw;
+            }
+
+            while (hasUpdates)
+            {
+                ChatResponseUpdate update = enumerator.Current;
                 update.ConversationId = LocalHistoryConversationId;
                 updates.Add(update);
+
                 yield return update.Clone();
+
+                try
+                {
+                    hasUpdates = await enumerator.MoveNextAsync().ConfigureAwait(false);
+                }
+                catch (Exception ex)
+                {
+                    await NotifyProviderOfFailureAsync(agent, session, ex, requestMessages, cancellationToken).ConfigureAwait(false);
+                    throw;
+                }
             }
 
             ChatResponse response = updates.ToChatResponse();
-            await NotifyProviderAsync(agent, session, requestMessages, response.Messages, cancellationToken);
+            await NotifyProviderAsync(agent, session, requestMessages, response.Messages, cancellationToken).ConfigureAwait(false);
         }
 
         private async ValueTask NotifyProviderAsync(
             AIAgent agent, AgentSession session,
-            IEnumerable<ChatMessage> requestMessages, IEnumerable<ChatMessage> responseMessages,
+            IEnumerable<ChatMessage> requestMessages,
+            IEnumerable<ChatMessage> responseMessages,
             CancellationToken cancellationToken)
         {
-            var invokedContext = new ChatHistoryProvider.InvokedContext(agent, session, requestMessages, responseMessages);
-            await _chatHistoryProvider.InvokedAsync(invokedContext, cancellationToken);
+            ChatHistoryProvider.InvokedContext invokedContext = new(agent, session, requestMessages, responseMessages);
+            await _chatHistoryProvider.InvokedAsync(invokedContext, cancellationToken).ConfigureAwait(false);
+        }
+
+        private async ValueTask NotifyProviderOfFailureAsync(
+            AIAgent agent, AgentSession session,
+            Exception exception,
+            IEnumerable<ChatMessage> requestMessages,
+            CancellationToken cancellationToken)
+        {
+            ChatHistoryProvider.InvokedContext invokedContext = new(agent, session, requestMessages, exception);
+            await _chatHistoryProvider.InvokedAsync(invokedContext, cancellationToken).ConfigureAwait(false);
         }
 
         private static (AIAgent Agent, AgentSession Session) GetRequiredAgentAndSession()
