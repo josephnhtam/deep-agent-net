@@ -2,6 +2,9 @@
 
 ### The agent harness for .NET.
 
+[![NuGet](https://img.shields.io/nuget/v/DeepAgentNet.svg)](https://www.nuget.org/packages/DeepAgentNet)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+
 DeepAgentNet is an agent harness for .NET — a ready-to-run framework for building autonomous agents. Instead of wiring up prompts, tools, and context management yourself, you get a working agent out of the box and customize what you need.
 
 Built on [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-csharp) and [Microsoft.Extensions.AI](https://learn.microsoft.com/en-us/dotnet/ai/ai-extensions).
@@ -14,6 +17,12 @@ Built on [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-fra
 - **Sub-agents** — `task` for delegating work with isolated context windows and session resume
 - **Context management** — chat history and compaction integrated at the chat client level for automatic context management during autonomous function calls
 - **Tool approval** — human-in-the-loop gates for sensitive operations
+
+## Installation
+
+```
+dotnet add package DeepAgentNet
+```
 
 ## Quick Start
 
@@ -110,6 +119,100 @@ class MySubAgentHandle : ISubAgentHandle
 }
 ```
 
+The agent can plan, read/write files, run commands, and delegate to sub-agents. Add tools, customize prompts, or swap models as needed.
+
+## Customization
+
+### Sub-agents
+
+Register custom sub-agent types alongside the built-in general-purpose agent:
+
+```csharp
+.WithSubAgent(new SubAgentProviderOptions
+{
+    GeneralPurposeAgent = new GeneralPurposeAgentOptions(handle)
+    {
+        Description = "General-purpose agent for multi-step tasks.",
+        SystemPrompt = "You are an agent completing a delegated task."
+    },
+    SubAgents =
+    [
+        new SubAgent(
+            Name: "researcher",
+            Description: "Specialized agent for research tasks.",
+            Handle: handle,
+            Factory: new MyResearchAgentFactory())
+    ]
+})
+```
+
+Implement `ISubAgentFactory` to control how sub-agents are created — provide a custom `IChatClient`, configure agent options, or decorate the agent after construction.
+
+### Filesystem
+
+`FileSystemAccess` provides a sandboxed filesystem rooted at a directory of your choice. By default, all paths are restricted to that root.
+
+```csharp
+.WithFileSystem(new FileSystemProviderOptions(
+    new FileSystemAccess(new DirectoryInfo("/my/project"))))
+```
+
+### Compaction
+
+Plug in a `CompactionStrategy` to manage context during long-running autonomous function call loops. The example below uses summarization when the token count exceeds a threshold:
+
+```csharp
+using Microsoft.Agents.AI.Compaction;
+
+.WithCompaction(new CompactionProviderOptions(
+    new PipelineCompactionStrategy(
+        [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))])))
+```
+
+### Extending the agent
+
+Add your own tools and `AIContextProvider`s via `ChatClientAgentOptions`. DeepAgentNet merges them with its built-in providers, so everything is available to the agent:
+
+```csharp
+var agent = chatClient.AsDeepAgent(
+    agentOptions: new ChatClientAgentOptions
+    {
+        ChatOptions = new ChatOptions
+        {
+            Instructions = "You are a helpful autonomous agent.",
+            Tools = [myCustomTool]
+        },
+        AIContextProviders = [new MyCustomContextProvider()]
+    },
+    deepAgentOptions: options);
+```
+
+### Tool approval
+
+Built-in tools can require human approval before execution. Configure per-tool policies via `ToolApprovalPolicy`:
+
+```csharp
+.WithShell(new ShellProviderOptions(new LocalShellResolver())
+{
+    ToolOptions = new ToolOptions { ApprovalPolicy = ToolApprovalPolicy.Required }
+})
+```
+
+## Sample
+
+See [`samples/CodingAgentSample`](samples/CodingAgentSample) for an interactive terminal coding agent built with DeepAgentNet, featuring:
+
+- Streaming responses with reasoning output
+- Human-in-the-loop tool approval
+- Hierarchical sub-agents (general-purpose + explore)
+- Todo list visualization
+- Conversation compaction
+- Terminal UI with [Spectre.Console](https://spectreconsole.net)
+
+## Acknowledgements
+
+This project is inspired by [Deep Agents](https://github.com/langchain-ai/deepagents) by LangChain — an agent harness providing planning, filesystem, shell, and sub-agent tools out of the box.
+
 ## License
 
-[MIT](https://github.com/josephnhtam/deep-agent-net/blob/main/LICENSE)
+[MIT](LICENSE)
