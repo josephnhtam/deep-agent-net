@@ -1,4 +1,4 @@
-using DeepAgentNet.ChatHistoryProviders.Internal;
+using DeepAgentNet.ChatHistories.Internal;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 

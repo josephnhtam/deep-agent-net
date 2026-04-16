@@ -1,6 +1,6 @@
 using DeepAgentNet.Agents.Internal;
 using DeepAgentNet.Agents.Internal.Contracts;
-using DeepAgentNet.ChatHistoryProviders.Internal;
+using DeepAgentNet.ChatHistories.Internal;
 using DeepAgentNet.Compactions.Internal;
 using DeepAgentNet.FileSystems.Internal;
 using DeepAgentNet.Shared.Contracts;

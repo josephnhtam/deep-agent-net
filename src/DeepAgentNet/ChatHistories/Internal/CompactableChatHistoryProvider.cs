@@ -4,7 +4,7 @@ using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace DeepAgentNet.ChatHistoryProviders.Internal
+namespace DeepAgentNet.ChatHistories.Internal
 {
     public class CompactableChatHistoryProvider : ChatHistoryProvider
     {
