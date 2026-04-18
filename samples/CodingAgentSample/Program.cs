@@ -118,7 +118,10 @@ var deepAgentOptions = DeepAgentOptionsBuilder.Create()
         ]
     })
     .WithFileSystem(new FileSystemProviderOptions(fileSystemAccess))
-    .WithShell(new ShellProviderOptions(new LocalShellResolver()))
+    .WithShell(new ShellProviderOptions(new LocalShellResolver())
+    {
+        DefaultWorkingDirectory = root.FullName
+    })
     .WithCompaction(new CompactionProviderOptions(new PipelineCompactionStrategy(
         [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))])))
     .Build();

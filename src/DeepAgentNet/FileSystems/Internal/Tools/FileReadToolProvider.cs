@@ -22,22 +22,36 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = FileSystemDefaults.ReadFileToolName,
-                Description = options.Description ?? FileSystemDefaults.ReadFileToolDescription
+                Description = options.Description ?? FileSystemDefaults.ReadFileToolDescription,
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions()
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions() => new()
+        {
+            ParameterDescriptionProvider = property => property.Name switch
+            {
+                "cwdPath" => $"The working directory for resolving relative paths. Defaults to '{_access.RootWorkingDirectory}'.",
+                _ => null
+            }
+        };
+
         private async ValueTask<Result> ExecuteAsync(
-            [Description("The absoulte path to the file to read")]
+            [Description("The path to the file to read")]
             string filePath,
+            string? cwdPath = null,
             [Description("Line offset to start reading from (0-indexed)")]
             int offset = 0,
             [Description("Maximum number of lines to read (defaults to 500)")]
             int limit = 500,
             CancellationToken cancellationToken = default)
         {
+            if (!Path.IsPathFullyQualified(filePath))
+                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
+
             try
             {
                 TruncatingStringBuilder? truncatingBuilder = _options.ResultTokenLimit.HasValue

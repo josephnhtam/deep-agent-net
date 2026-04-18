@@ -1,6 +1,5 @@
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.FileSystems.Internal;
-using DeepAgentNet.Shared.Internal;
 using Microsoft.Extensions.FileSystemGlobbing;
 using Microsoft.Extensions.FileSystemGlobbing.Abstractions;
 using Microsoft.Extensions.Logging;
@@ -28,7 +27,7 @@ namespace DeepAgentNet.FileSystems
         private string ResolveFullPath(string path)
         {
             string fullPath = Path.IsPathFullyQualified(path) ?
-                path : Path.GetFullPath(Path.Combine(RootWorkingDirectory, PathHelper.NormalizePath(path)));
+                path : Path.GetFullPath(Path.Combine(RootWorkingDirectory, path));
 
             if (_options.RestrictToRoot && !fullPath.StartsWith(RootWorkingDirectory))
             {

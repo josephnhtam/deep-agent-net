@@ -43,7 +43,7 @@ namespace DeepAgentNet.Shells
             ## Command Best Practices
 
             - Always quote file paths that contain spaces with double quotes.
-            - Use the workingDirectory parameter to change directories instead of cd.
+            - Use the cwdPath parameter to change directories instead of cd.
             - If commands are independent, make multiple parallel shell tool calls.
             - If commands depend on each other, chain them with && in a single call.
             - Use ; only when you need sequential execution but do not care if earlier commands fail.
@@ -55,18 +55,18 @@ namespace DeepAgentNet.Shells
 
             Available shells: {string.Join(", ", shells)}.
 
-            All commands run in the specified working directory. Use the workingDirectory parameter to set the directory — AVOID using `cd <directory> && <command>` patterns.
+            All commands run in the specified working directory. Use the cwdPath parameter to set the directory — AVOID using `cd <directory> && <command>` patterns.
 
             Before executing a command:
             1. If the command will create new directories or files, first verify the parent directory exists using the ls tool.
             2. Always quote file paths that contain spaces with double quotes.
 
             Usage notes:
-            - The command and workingDirectory arguments are required.
+            - The command argument is required.
             - If timeout is not specified, the command will use the default timeout.
             - If the commands are independent, make multiple shell tool calls in parallel rather than chaining them.
             - If the commands depend on each other, chain them with && in a single call.
-            - AVOID using `cd <directory> && <command>`. Use the workingDirectory parameter instead.
+            - AVOID using `cd <directory> && <command>`. Use the cwdPath parameter instead.
             - DO NOT use the shell tool for file operations — use the dedicated filesystem tools instead.
             """;
     }

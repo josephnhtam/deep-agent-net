@@ -35,7 +35,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             ParameterDescriptionProvider = property => property.Name switch
             {
-                "path" => $"The directory to search in. If not specified, the current working directory ({_access.RootWorkingDirectory}) will be used.",
+                "cwdPath" => $"The base working directory for resolving relative paths (including path). Defaults to '{_access.RootWorkingDirectory}'.",
                 _ => null
             }
         };
@@ -43,9 +43,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         private async ValueTask<string> ExecuteAsync(
             [Description("Glob pattern (e.g., '*.py', '**/*.ts')")]
             string pattern,
-            [Description("")] string? path,
+            [Description("The path to the directory to search in")]
+            string? path = null,
+            string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
+            if (path is null || !Path.IsPathFullyQualified(path))
+                path = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, path ?? ".");
+
             try
             {
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?

@@ -24,20 +24,34 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = FileSystemDefaults.LsToolName,
-                Description = options.Description ?? FileSystemDefaults.LsToolDescription
+                Description = options.Description ?? FileSystemDefaults.LsToolDescription,
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions()
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions() => new()
+        {
+            ParameterDescriptionProvider = property => property.Name switch
+            {
+                "cwdPath" => $"The working directory for resolving relative paths. Defaults to '{_access.RootWorkingDirectory}'.",
+                _ => null
+            }
+        };
+
         private async ValueTask<string> ExecuteAsync(
-            [Description("The absolute path to the directory to list")]
+            [Description("The path to the directory to list")]
             string path,
             [Description("Whether to list recursively (default: false)")]
             bool recursive = false,
+            string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
+            if (!Path.IsPathFullyQualified(path))
+                path = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, path);
+
             try
             {
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?

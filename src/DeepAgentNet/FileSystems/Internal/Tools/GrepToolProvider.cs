@@ -34,7 +34,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             ParameterDescriptionProvider = property => property.Name switch
             {
-                "path" => $"The directory to search in. If not specified, the current working directory ({_access.RootWorkingDirectory}) will be used.",
+                "cwdPath" => $"The base working directory for resolving relative paths (including path). Defaults to '{_access.RootWorkingDirectory}'.",
                 _ => null
             }
         };
@@ -42,13 +42,18 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         private async ValueTask<string> ExecuteAsync(
             [Description("The search pattern. Literal text by default, or a regular expression if isRegex is true.")]
             string pattern,
+            [Description("The path to the directory to search in")]
             string? path = null,
             [Description("Optional glob pattern to filter files (e.g., '*.py')")]
             string? glob = null,
             [Description("If true, treat pattern as a regular expression. Defaults to false (literal text search).")]
             bool isRegex = false,
+            string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
+            if (path is null || !Path.IsPathFullyQualified(path))
+                path = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, path ?? ".");
+
             try
             {
                 List<GrepMatch> matches = await _access.GrepAsync(pattern, path, glob, isRegex, cancellationToken).ConfigureAwait(false);

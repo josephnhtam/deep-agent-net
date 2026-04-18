@@ -22,20 +22,34 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = FileSystemDefaults.OverwriteFileToolName,
-                Description = options.Description ?? FileSystemDefaults.OverwriteFileToolDescription
+                Description = options.Description ?? FileSystemDefaults.OverwriteFileToolDescription,
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions()
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions() => new()
+        {
+            ParameterDescriptionProvider = property => property.Name switch
+            {
+                "cwdPath" => $"The working directory for resolving relative paths. Defaults to '{_access.RootWorkingDirectory}'.",
+                _ => null
+            }
+        };
+
         private async ValueTask<string> ExecuteAsync(
-            [Description("The absoulte path to the file to overwrite")]
+            [Description("The path to the file to overwrite")]
             string filePath,
             [Description("Content to replace the file with")]
             string content,
+            string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
+            if (!Path.IsPathFullyQualified(filePath))
+                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
+
             using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
                 string? validationError = await ValidateAsync(filePath, _access, cancellationToken)

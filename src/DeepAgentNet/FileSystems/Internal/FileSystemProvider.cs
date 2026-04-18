@@ -41,10 +41,11 @@ namespace DeepAgentNet.FileSystems.Internal
 
         protected override ValueTask<AIContext> ProvideAIContextAsync(InvokingContext context, CancellationToken cancellationToken = default)
         {
+            var envInfo = FileSystemEnvironmentInfo.Create(_options.Access.RootWorkingDirectory);
+
             return new(new AIContext
             {
-                Instructions = _options.SystemPrompt?.Invoke(_options.Access.RootWorkingDirectory) ??
-                    FileSystemDefaults.GetSystemPrompt(_options.Access.RootWorkingDirectory),
+                Instructions = _options.SystemPrompt?.Invoke(envInfo) ?? FileSystemDefaults.GetSystemPrompt(envInfo),
                 Tools = _tools
             });
         }

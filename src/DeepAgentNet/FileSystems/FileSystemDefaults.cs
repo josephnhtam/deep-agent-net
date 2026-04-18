@@ -1,3 +1,5 @@
+using System.Text;
+
 namespace DeepAgentNet.FileSystems
 {
     public static class FileSystemDefaults
@@ -20,26 +22,37 @@ namespace DeepAgentNet.FileSystems
 
         public const string OverwriteFileToolName = "overwrite_file";
 
-        public static string GetSystemPrompt(string workingDirectory) => $"""
-            ## Filesystem Tools `ls`, `read_file`, `read_file_data`, `write_file`, `edit_file`, `glob`, `delete_file`, `grep`, `overwrite_file`
+        public static string GetSystemPrompt(FileSystemEnvironmentInfo envInfo)
+        {
+            var sb = new StringBuilder();
 
-            Working directory: {workingDirectory}
+            sb.AppendLine("## Environment");
+            sb.AppendLine();
+            sb.AppendLine($"Working directory: {envInfo.WorkingDirectory}");
+            if (envInfo.OsDescription is not null) sb.AppendLine($"OS: {envInfo.OsDescription}");
 
-            You have access to a filesystem which you can interact with using these tools.
-            All file paths must start with a /.
+            sb.AppendLine();
+            sb.AppendLine("""
+                ## Filesystem Tools `ls`, `read_file`, `read_file_data`, `write_file`, `edit_file`, `glob`, `delete_file`, `grep`, `overwrite_file`
 
-            When reading files, results are returned with each line prefixed by a padded line number followed by an arrow (→), starting at 1. The line number prefix format is: spaces + line number + arrow (→). Treat the line number prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
+                You have access to a filesystem which you can interact with using these tools.
+                File paths are relative to the working directory by default. Use the cwdPath parameter to override the working directory for a specific call.
 
-            - ls: list files and directories in a path (supports recursive listing)
-            - read_file: read a file from the filesystem (line-oriented text)
-            - read_file_data: read a file as raw bytes (attached for multimodal models when supported); use for binary files or when exact bytes are needed
-            - write_file: write a new file to the filesystem
-            - overwrite_file: replace the entire content of an existing file
-            - edit_file: edit a file in the filesystem
-            - delete_file: delete a file from the filesystem
-            - glob: find files matching a pattern (e.g., "**/*.py")
-            - grep: search for text within files
-            """;
+                When reading files, results are returned with each line prefixed by a padded line number followed by an arrow (→), starting at 1. The line number prefix format is: spaces + line number + arrow (→). Treat the line number prefix as metadata -- it is not part of the actual file content. Do not include line number prefixes when providing text for edits.
+
+                - ls: list files and directories in a path (supports recursive listing)
+                - read_file: read a file from the filesystem (line-oriented text)
+                - read_file_data: read a file as raw bytes (attached for multimodal models when supported); use for binary files or when exact bytes are needed
+                - write_file: write a new file to the filesystem
+                - overwrite_file: replace the entire content of an existing file
+                - edit_file: edit a file in the filesystem
+                - delete_file: delete a file from the filesystem
+                - glob: find files matching a pattern (e.g., "**/*.py")
+                - grep: search for text within files
+                """);
+
+            return sb.ToString();
+        }
 
         public const string LsToolDescription = """
             Lists files and directories in a given path. Directories are listed first, then files.
@@ -137,7 +150,7 @@ namespace DeepAgentNet.FileSystems
             Find files matching a glob pattern.
 
             Supports standard glob patterns: `*` (any characters), `**` (any directories), `?` (single character).
-            Returns a list of absolute file paths that match the pattern.
+            Returns a list of file paths that match the pattern.
 
             Examples:
             - `**/*.py` - Find all Python files

@@ -25,19 +25,33 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = FileSystemDefaults.ReadFileDataToolName,
-                Description = options.Description ?? FileSystemDefaults.ReadFileDataToolDescription
+                Description = options.Description ?? FileSystemDefaults.ReadFileDataToolDescription,
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions()
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions() => new()
+        {
+            ParameterDescriptionProvider = property => property.Name switch
+            {
+                "cwdPath" => $"The working directory for resolving relative paths. Defaults to '{_access.RootWorkingDirectory}'.",
+                _ => null
+            }
+        };
+
         private async ValueTask<IEnumerable<AIContent>> ExecuteAsync(
-            [Description("The absoulte path to the file to read as raw bytes")]
+            [Description("The path to the file to read as raw bytes")]
             string filePath,
+            string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
             filePath = PathHelper.NormalizePath(filePath);
+
+            if (!Path.IsPathFullyQualified(filePath))
+                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
 
             using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {

@@ -5,7 +5,7 @@ namespace DeepAgentNet.FileSystems
 {
     public record FileSystemProviderOptions(IFileSystemAccess Access)
     {
-        public Func<string, string>? SystemPrompt { get; init; }
+        public Func<FileSystemEnvironmentInfo, string>? SystemPrompt { get; init; }
         public TokenLimitedToolOptions LsToolOptions { get; init; } = new();
         public TokenLimitedToolOptions ReadFileToolOptions { get; init; } = new();
         public DataLimitedToolOptions DataLimitedToolOptions { get; init; } = new();

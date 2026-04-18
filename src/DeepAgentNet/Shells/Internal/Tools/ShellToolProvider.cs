@@ -10,6 +10,7 @@ namespace DeepAgentNet.Shells.Internal.Tools
     {
         private readonly IReadOnlyDictionary<string, IShellRunner> _shellRunners;
         private readonly IReadOnlyList<string> _shellNames;
+        private readonly string? _defaultWorkingDirectory;
 
         public AITool Tool { get; }
 
@@ -17,23 +18,25 @@ namespace DeepAgentNet.Shells.Internal.Tools
         {
             _shellRunners = shellRunners.ToDictionary(r => r.Shell, StringComparer.OrdinalIgnoreCase);
             _shellNames = shellRunners.Select(r => r.Shell).ToList();
+            _defaultWorkingDirectory = options.DefaultWorkingDirectory;
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = ShellDefaults.ToolName,
                 Description = options.Description?.Invoke(_shellNames) ?? ShellDefaults.GetToolDescription(_shellNames),
-                JsonSchemaCreateOptions = JsonSchemaCreateOptions(_shellNames)
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions(_shellNames)
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
-        private static AIJsonSchemaCreateOptions JsonSchemaCreateOptions(IReadOnlyList<string> shellNames) => new()
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions(IReadOnlyList<string> shellNames) => new()
         {
             ParameterDescriptionProvider = property => property.Name switch
             {
                 "shellName" => $"The name of the shell to use. Available: {string.Join(", ", shellNames.Select(s => $"'{s}'"))}",
+                "cwdPath" => $"The working directory in which to run the command. Use this instead of cd. Defaults to '{_defaultWorkingDirectory ?? Directory.GetCurrentDirectory()}'.",
                 _ => null
             }
         };
@@ -42,8 +45,7 @@ namespace DeepAgentNet.Shells.Internal.Tools
             string shellName,
             [Description("The shell command to execute")]
             string command,
-            [Description("The absolute path to the working directory in which to run the command. Use this instead of cd.")]
-            string workingDirectory,
+            string? cwdPath = null,
             [Description("Optional timeout for the command")]
             TimeSpan? timeout = null,
             CancellationToken cancellationToken = default)
@@ -55,7 +57,8 @@ namespace DeepAgentNet.Shells.Internal.Tools
                     nameof(shellName));
             }
 
-            return await runner.RunAsync(command, workingDirectory, timeout, cancellationToken);
+            string resolvedDir = cwdPath ?? _defaultWorkingDirectory ?? Directory.GetCurrentDirectory();
+            return await runner.RunAsync(command, resolvedDir, timeout, cancellationToken);
         }
     }
 }

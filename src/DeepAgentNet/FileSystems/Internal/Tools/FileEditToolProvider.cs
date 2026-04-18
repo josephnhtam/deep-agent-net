@@ -22,23 +22,37 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
                 Name = FileSystemDefaults.EditFileToolName,
-                Description = options.Description ?? FileSystemDefaults.EditFileToolDescription
+                Description = options.Description ?? FileSystemDefaults.EditFileToolDescription,
+                JsonSchemaCreateOptions = CreateJsonSchemaOptions()
             });
 
             Tool = options.ApprovalPolicy == ToolApprovalPolicy.Required ?
                 new ApprovalRequiredAIFunction(function) : function;
         }
 
+        private AIJsonSchemaCreateOptions CreateJsonSchemaOptions() => new()
+        {
+            ParameterDescriptionProvider = property => property.Name switch
+            {
+                "cwdPath" => $"The working directory for resolving relative paths. Defaults to '{_access.RootWorkingDirectory}'.",
+                _ => null
+            }
+        };
+
         private async ValueTask<string> ExecuteAsync(
-            [Description("The absoulte path to the file to edit")]
+            [Description("The path to the file to edit")]
             string filePath,
             [Description("The text to replace")] string oldString,
             [Description("The text to replace it with")]
             string newString,
             [Description("Replace all occurrences of oldString")]
             bool replaceAll,
+            string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
+            if (!Path.IsPathFullyQualified(filePath))
+                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
+
             if (oldString == newString)
                 return "No changes to make: oldString and newString are exactly the same.";
 
