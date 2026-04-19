@@ -79,6 +79,6 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
         public static async ValueTask<string?> ValidateAsync(
             string filePath, IFileSystemAccess access, CancellationToken cancellationToken)
-            => await FileToolGuards.ValidateReadStateAsync(filePath, access);
+            => await FileToolGuards.ValidateReadStateAsync(filePath, access, cancellationToken);
     }
 }

@@ -29,49 +29,47 @@ namespace DeepAgentNet.Agents.Internal
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-
-                bool preValidationRejected = false;
                 addedMessages?.Clear();
 
                 ChatResponse response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
                 conversationId = response.ConversationId ?? conversationId;
 
-                List<AIContent>? rejections = null;
+                List<PendingRejection>? pendingRejections = null;
 
                 foreach (var message in response.Messages)
                 {
-                    rejections = await ProcessFunctionCallPreValidationAsync(message.Contents, rejections, cancellationToken);
+                    pendingRejections = await CollectRejectionsAsync(message.Contents, pendingRejections, cancellationToken);
                 }
 
-                if (rejections is { Count: > 0 })
+                if (pendingRejections is not { Count: > 0 })
                 {
-                    preValidationRejected = true;
-                    var addedMessage = CreateRejectionMessage(rejections);
-                    (addedMessages ??= []).Add(addedMessage);
-                    response.Messages.Add(addedMessage);
+                    FixupHistories(
+                        originalMessages, ref chatMessages, ref augmentedMessages,
+                        response, responseMessages, addedMessages, ref lastIterationHadConversationId);
+                    responseMessages.AddRange(response.Messages);
+                    return new ChatResponse(responseMessages) { ConversationId = conversationId };
                 }
+
+                var rejectedCallIds = new HashSet<string>(pendingRejections.Select(r => r.Call.CallId));
+
+                if (HasNonRejectedFunctionCallOrApproval(response, rejectedCallIds))
+                {
+                    FixupHistories(
+                        originalMessages, ref chatMessages, ref augmentedMessages,
+                        response, responseMessages, addedMessages, ref lastIterationHadConversationId);
+                    responseMessages.AddRange(response.Messages);
+                    return new ChatResponse(responseMessages) { ConversationId = conversationId };
+                }
+
+                var rejections = ApplyRejections(pendingRejections);
+                var addedMessage = CreateRejectionMessage(rejections);
+                (addedMessages ??= []).Add(addedMessage);
+                response.Messages.Add(addedMessage);
 
                 FixupHistories(
-                    originalMessages,
-                    ref chatMessages,
-                    ref augmentedMessages,
-                    response,
-                    responseMessages,
-                    addedMessages,
-                    ref lastIterationHadConversationId
-                );
-
+                    originalMessages, ref chatMessages, ref augmentedMessages,
+                    response, responseMessages, addedMessages, ref lastIterationHadConversationId);
                 responseMessages.AddRange(response.Messages);
-
-                if (!preValidationRejected ||
-                    HasUnprocessedFunctionCallRequest(response) ||
-                    HasToolApprovalRequest(response))
-                {
-                    return new ChatResponse(responseMessages)
-                    {
-                        ConversationId = conversationId
-                    };
-                }
 
                 UpdateOptionsForNextIteration(ref options, response.ConversationId);
             }
@@ -94,62 +92,72 @@ namespace DeepAgentNet.Agents.Internal
             while (true)
             {
                 cancellationToken.ThrowIfCancellationRequested();
-
-                bool preValidationRejected = false;
                 addedMessages?.Clear();
 
-                List<AIContent>? rejections = null;
+                List<PendingRejection>? pendingRejections = null;
+                int lastYieldedIndex = 0;
 
                 await foreach (ChatResponseUpdate update in
                     base.GetStreamingResponseAsync(chatMessages, options, cancellationToken))
                 {
-                    rejections = await ProcessFunctionCallPreValidationAsync(update.Contents, rejections, cancellationToken);
-
+                    pendingRejections = await CollectRejectionsAsync(update.Contents, pendingRejections, cancellationToken);
                     updates.Add(update);
-                    yield return update;
+
+                    if (pendingRejections is null)
+                    {
+                        lastYieldedIndex++;
+                        yield return update;
+                    }
                 }
 
-                if (rejections?.Any() == true)
+                if (pendingRejections is not { Count: > 0 })
                 {
-                    preValidationRejected = true;
-                    var addedMessage = CreateRejectionMessage(rejections);
-                    (addedMessages ??= []).Add(addedMessage);
-
-                    var addedUpdate = ConvertToolResultMessageToUpdate(
-                        addedMessage, options?.ConversationId, addedMessage.MessageId);
-
-                    updates.Add(addedUpdate);
-                    yield return addedUpdate;
+                    for (; lastYieldedIndex < updates.Count; lastYieldedIndex++)
+                        yield return updates[lastYieldedIndex];
+                        
+                    yield break;
                 }
 
-                ChatResponse response = updates.ToChatResponse();
+                var rejectedCallIds = new HashSet<string>(pendingRejections.Select(r => r.Call.CallId));
+                ChatResponse preResponse = updates.ToChatResponse();
 
-                FixupHistories(
-                    originalMessages,
-                    ref chatMessages,
-                    ref augmentedMessages,
-                    response,
-                    responseMessages,
-                    addedMessages,
-                    ref lastIterationHadConversationId
-                );
-
-                responseMessages.AddRange(response.Messages);
-
-                if (!preValidationRejected ||
-                    HasUnprocessedFunctionCallRequest(response) ||
-                    HasToolApprovalRequest(response))
+                if (HasNonRejectedFunctionCallOrApproval(preResponse, rejectedCallIds))
                 {
-                    break;
+                    for (; lastYieldedIndex < updates.Count; lastYieldedIndex++)
+                        yield return updates[lastYieldedIndex];
+                        
+                    yield break;
                 }
 
-                UpdateOptionsForNextIteration(ref options, response.ConversationId);
+                var rejections = ApplyRejections(pendingRejections);
+                var addedMessage = CreateRejectionMessage(rejections);
+                (addedMessages ??= []).Add(addedMessage);
+
+                var addedUpdate = ConvertToolResultMessageToUpdate(
+                    addedMessage, options?.ConversationId, addedMessage.MessageId);
+
+                updates.Add(addedUpdate);
+                yield return addedUpdate;
+
+                ChatResponse responseWithRejections = updates.ToChatResponse();
+
+                FixupHistories(originalMessages, ref chatMessages, ref augmentedMessages,
+                    responseWithRejections, responseMessages, addedMessages, ref lastIterationHadConversationId);
+
+                responseMessages.AddRange(responseWithRejections.Messages);
+
+                UpdateOptionsForNextIteration(ref options, responseWithRejections.ConversationId);
+
                 updates.Clear();
             }
         }
 
-        private async ValueTask<List<AIContent>?> ProcessFunctionCallPreValidationAsync(
-            IList<AIContent> contents, List<AIContent>? rejections, CancellationToken cancellationToken)
+        private record struct PendingRejection(
+            IList<AIContent> Contents, int Index,
+            FunctionCallContent Call, string RejectionMessage);
+
+        private async ValueTask<List<PendingRejection>?> CollectRejectionsAsync(
+            IList<AIContent> contents, List<PendingRejection>? pending, CancellationToken cancellationToken)
         {
             for (var i = 0; i < contents.Count; i++)
             {
@@ -162,16 +170,28 @@ namespace DeepAgentNet.Agents.Internal
 
                 if (rejection is not null)
                 {
-                    call.InformationalOnly = true;
-                    contents[i] = call;
-                    (rejections ??= []).Add(new FunctionResultContent(call.CallId, rejection)
-                    {
-                        AdditionalProperties = new AdditionalPropertiesDictionary
-                        {
-                            [KeyPreValidationRejected] = true
-                        }
-                    });
+                    (pending ??= []).Add(new(contents, i, call, rejection));
                 }
+            }
+
+            return pending;
+        }
+
+        private static List<AIContent> ApplyRejections(List<PendingRejection> pending)
+        {
+            List<AIContent> rejections = new(pending.Count);
+
+            foreach (var (contents, index, call, rejectionMessage) in pending)
+            {
+                call.InformationalOnly = true;
+                contents[index] = call;
+                rejections.Add(new FunctionResultContent(call.CallId, rejectionMessage)
+                {
+                    AdditionalProperties = new AdditionalPropertiesDictionary
+                    {
+                        [KeyPreValidationRejected] = true
+                    }
+                });
             }
 
             return rejections;
@@ -189,13 +209,18 @@ namespace DeepAgentNet.Agents.Internal
             _ => null
         };
 
-        private static bool HasUnprocessedFunctionCallRequest(ChatResponse response) =>
-            response.Messages.SelectMany(m => m.Contents).OfType<FunctionCallContent>()
-                .Any(c => !c.InformationalOnly);
-
-        private static bool HasToolApprovalRequest(ChatResponse response) =>
-            response.Messages.SelectMany(m => m.Contents).OfType<ToolApprovalRequestContent>()
-                .Any();
+        private static bool HasNonRejectedFunctionCallOrApproval(
+            ChatResponse response, HashSet<string> rejectedCallIds)
+        {
+            return response.Messages.SelectMany(m => m.Contents).Any(c => c switch
+            {
+                FunctionCallContent { InformationalOnly: false } call
+                    => !rejectedCallIds.Contains(call.CallId),
+                ToolApprovalRequestContent { ToolCall: FunctionCallContent call }
+                    => !rejectedCallIds.Contains(call.CallId),
+                _ => false
+            });
+        }
 
         private static ChatResponseUpdate ConvertToolResultMessageToUpdate(
             ChatMessage message, string? conversationId, string? messageId) => new()
