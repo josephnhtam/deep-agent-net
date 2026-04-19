@@ -107,14 +107,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             if (session is null)
                 return null;
 
-            var state = session.StateBag.GetValue<LsState>(LsState.StateBagKey);
-            if (state is null)
-            {
-                state = new LsState();
-                session.StateBag.SetValue(LsState.StateBagKey, state);
-            }
-
-            return state;
+            return FileToolGuards.LsSessionState.GetOrInitializeState(session);
         }
     }
 }
