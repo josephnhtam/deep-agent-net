@@ -3,6 +3,7 @@ using DeepAgentNet.FileSystems.Internal.Contracts;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
@@ -11,13 +12,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     {
         private readonly IFileSystemAccess _access;
         private readonly IFileLocks _fileLocks;
+        private readonly ILogger<FileEditToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        internal FileEditToolProvider(IFileSystemAccess access, ToolOptions options, IFileLocks fileLocks)
+        internal FileEditToolProvider(IFileSystemAccess access, ToolOptions options, IFileLocks fileLocks, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _fileLocks = fileLocks;
+            _logger = loggerFactory?.CreateLogger<FileEditToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -52,6 +55,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.EditingFile(filePath);
+
             if (oldString == newString)
                 return "No changes to make: oldString and newString are exactly the same.";
 
@@ -67,12 +72,16 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                     EditResult result = await _access.EditAsync(filePath, oldString, newString, replaceAll, cancellationToken).ConfigureAwait(false);
                     await FileToolGuards.UpdateReadStateAsync(filePath, _access, cancellationToken);
 
+                    _logger?.EditFileCompleted(filePath, result.Occurrences);
+
                     return replaceAll
                         ? $"The file '{filePath}' has been updated. All occurrences ({result.Occurrences}) were successfully replaced."
                         : $"The file '{filePath}' has been updated successfully.";
                 }
                 catch (Exception ex)
                 {
+                    _logger?.EditFileFailed(ex, filePath);
+
                     return $"""
                         Error: {ex.Message}
 

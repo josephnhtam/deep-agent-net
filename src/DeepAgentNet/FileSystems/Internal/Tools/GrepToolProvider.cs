@@ -3,6 +3,7 @@ using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
@@ -11,13 +12,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     {
         private readonly IFileSystemAccess _access;
         private readonly TokenLimitedToolOptions _options;
+        private readonly ILogger<GrepToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        public GrepToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options)
+        public GrepToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _options = options;
+            _logger = loggerFactory?.CreateLogger<GrepToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -53,9 +56,13 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             path = await _access.ResolvePathAsync(path ?? ".", cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.Grepping(pattern, path);
+
             try
             {
                 List<GrepMatch> matches = await _access.GrepAsync(pattern, path, glob, isRegex, cancellationToken).ConfigureAwait(false);
+
+                _logger?.GrepCompleted(pattern, matches.Count);
 
                 if (!matches.Any())
                     return $"No matches found for pattern '{pattern}'";
@@ -85,6 +92,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             }
             catch (Exception ex)
             {
+                _logger?.GrepFailed(ex, pattern);
+
                 return $"Error: {ex.Message}";
             }
         }

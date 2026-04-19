@@ -4,6 +4,7 @@ using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using FileSystemInfo = DeepAgentNet.FileSystems.Contracts.FileSystemInfo;
 
@@ -13,13 +14,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     {
         private readonly IFileSystemAccess _access;
         private readonly TokenLimitedToolOptions _options;
+        private readonly ILogger<ListInfoToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        public ListInfoToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options)
+        public ListInfoToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _options = options;
+            _logger = loggerFactory?.CreateLogger<ListInfoToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -51,6 +54,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             path = await _access.ResolvePathAsync(path, cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.ListingDirectory(path, recursive);
+
             try
             {
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
@@ -59,7 +64,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         SharedConstants.TruncationGuidance) :
                     new StandardStringBuilder();
 
-                bool hasEntries = false;
+                int entryCount = 0;
                 string basePath = path.TrimEnd('/');
                 LsState? lsState = GetOrCreateLsState();
 
@@ -68,7 +73,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 await foreach (FileSystemInfo info in
                     _access.ListInfoAsync(path, recursive, cancellationToken: cancellationToken).ConfigureAwait(false))
                 {
-                    hasEntries = true;
+                    entryCount++;
 
                     if (info.IsDirectory)
                         lsState?.Record(Path.Combine(basePath, info.Path));
@@ -84,10 +89,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         break;
                 }
 
-                return hasEntries ? sb.ToString() : $"No files found in {path}";
+                _logger?.ListDirectoryCompleted(path, entryCount);
+
+                return entryCount > 0 ? sb.ToString() : $"No files found in {path}";
             }
             catch (Exception ex)
             {
+                _logger?.ListDirectoryFailed(ex, path);
+
                 return $"Error: {ex.Message}";
             }
         }

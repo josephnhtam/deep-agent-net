@@ -3,6 +3,7 @@ using DeepAgentNet.FileSystems.Internal.Contracts;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
@@ -11,13 +12,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     {
         private readonly IFileSystemAccess _access;
         private readonly IFileLocks _fileLocks;
+        private readonly ILogger<FileDeleteToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        public FileDeleteToolProvider(IFileSystemAccess access, ToolOptions options, IFileLocks fileLocks)
+        public FileDeleteToolProvider(IFileSystemAccess access, ToolOptions options, IFileLocks fileLocks, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _fileLocks = fileLocks;
+            _logger = loggerFactory?.CreateLogger<FileDeleteToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -47,6 +50,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.DeletingFile(filePath);
+
             using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
                 string? validationError = await ValidateAsync(filePath, _access, cancellationToken)
@@ -58,10 +63,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 try
                 {
                     await _access.DeleteAsync(filePath, cancellationToken).ConfigureAwait(false);
+
+                    _logger?.DeleteFileCompleted(filePath);
+
                     return $"Successfully deleted '{filePath}'";
                 }
                 catch (Exception ex)
                 {
+                    _logger?.DeleteFileFailed(ex, filePath);
+
                     return $"Error: {ex.Message}";
                 }
             }

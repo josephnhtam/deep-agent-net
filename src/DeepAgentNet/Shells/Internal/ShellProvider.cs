@@ -15,7 +15,7 @@ namespace DeepAgentNet.Shells.Internal
             _options = options;
 
             List<IShellRunner> shells = _options.ShellResolver.ResolveShells();
-            ShellToolProvider shellToolProvider = new(shells, _options);
+            ShellToolProvider shellToolProvider = new(shells, _options, _options.LoggerFactory);
 
             _tools = [shellToolProvider.Tool];
         }

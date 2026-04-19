@@ -23,6 +23,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
         private readonly Dictionary<string, SubAgent> _subAgentMap;
         private readonly SubAgentDefaultOptions _defaultOptions;
         private readonly ILoggerFactory? _loggerFactory;
+        private readonly ILogger<RunSubAgentToolProvider>? _logger;
         private readonly IServiceProvider? _services;
 
         private AIAgent? _parentAgent;
@@ -35,6 +36,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
         {
             _defaultOptions = defaultOptions;
             _loggerFactory = loggerFactory;
+            _logger = loggerFactory?.CreateLogger<RunSubAgentToolProvider>();
             _services = services;
             _subAgentMap = subAgents.ToDictionary(a => a.Name, a => a);
 
@@ -73,18 +75,30 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             string? taskId = null,
             CancellationToken cancellationToken = default)
         {
+            _logger?.ExecutingSubAgent(subAgentType, taskId, description);
+
             ResolvedSubAgent? resolvedSubAgent = await TryResolveSubAgentAsync(taskId, subAgentType, cancellationToken).ConfigureAwait(false);
 
             if (!resolvedSubAgent.HasValue)
+            {
+                _logger?.UnknownSubAgentType(subAgentType);
                 return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys.Select(k => $"'{k}'"))}";
+            }
 
             (SubAgent subAgent, AIAgent agent, AgentSession session, string resolvedTaskId, bool resumed) = resolvedSubAgent.Value;
+
+            if (resumed)
+                _logger?.SubAgentSessionResumed(subAgent.Name, resolvedTaskId);
+            else
+                _logger?.SubAgentSessionCreated(subAgent.Name, resolvedTaskId);
 
             await subAgent.Handle.OnSessionCreateOrResumedAsync(agent.Id, resolvedTaskId, resumed, description, prompt, cancellationToken)
                 .ConfigureAwait(false);
 
             SubAgentRunner runner = new(resolvedSubAgent.Value);
             AgentResponse response = await runner.RunAsync(prompt, cancellationToken).ConfigureAwait(false);
+
+            _logger?.SubAgentSessionCompleted(subAgent.Name, resolvedTaskId);
 
             await subAgent.Handle.OnSessionCompletedAsync(agent.Id, resolvedTaskId, cancellationToken).ConfigureAwait(false);
             await SaveSessionEntryAsync(agent, session, resolvedTaskId, subAgent.Name, cancellationToken).ConfigureAwait(false);
@@ -106,6 +120,8 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             if (taskId is not null && TryGetSessionEntry(taskId) is { } entry &&
                 _subAgentMap.TryGetValue(entry.SubAgentType, out var subAgent))
             {
+                _logger?.DeserializingSubAgentSession(taskId, entry.SubAgentType);
+
                 AIAgent agent = CreateAgentFromFactory(subAgent);
 
                 AgentSession session = await agent.DeserializeSessionAsync(entry.SerializedState, cancellationToken: cancellationToken)
@@ -122,6 +138,9 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                     .ConfigureAwait(false);
 
                 taskId = Guid.NewGuid().ToString("N");
+
+                _logger?.CreatedNewSubAgentSession(taskId, subAgentType);
+
                 return new(SubAgent: subAgent, Agent: agent, Session: session, TaskId: taskId, Resumed: false);
             }
 
@@ -239,11 +258,18 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             if (_parentSession?.StateBag is not { } stateBag)
                 return;
 
-            JsonElement serializedState = await agent.SerializeSessionAsync(
-                session, cancellationToken: cancellationToken).ConfigureAwait(false);
+            try
+            {
+                JsonElement serializedState = await agent.SerializeSessionAsync(
+                    session, cancellationToken: cancellationToken).ConfigureAwait(false);
 
-            string key = GetSubAgentSessionKey(taskId);
-            stateBag.SetValue(key, new SubAgentSessionEntry(subAgentType, serializedState));
+                string key = GetSubAgentSessionKey(taskId);
+                stateBag.SetValue(key, new SubAgentSessionEntry(subAgentType, serializedState));
+            }
+            catch (Exception ex) when (ex is not OperationCanceledException)
+            {
+                _logger?.FailedToSerializeSubAgentSession(ex, taskId);
+            }
         }
 
         private class SubAgentRunner

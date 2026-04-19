@@ -3,6 +3,7 @@ using DeepAgentNet.FileSystems.Internal.Contracts;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
@@ -12,14 +13,16 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         private readonly IFileSystemAccess _access;
         private readonly DataLimitedToolOptions _options;
         private readonly IFileLocks _fileLocks;
+        private readonly ILogger<FileGetDataToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        internal FileGetDataToolProvider(IFileSystemAccess access, DataLimitedToolOptions options, IFileLocks fileLocks)
+        internal FileGetDataToolProvider(IFileSystemAccess access, DataLimitedToolOptions options, IFileLocks fileLocks, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _options = options;
             _fileLocks = fileLocks;
+            _logger = loggerFactory?.CreateLogger<FileGetDataToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -49,6 +52,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.ReadingFileData(filePath);
+
             using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {
                 try
@@ -67,6 +72,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
                     await FileToolGuards.RecordFileReadAsync(filePath, _access, cancellationToken).ConfigureAwait(false);
 
+                    _logger?.ReadFileDataCompleted(filePath, byteLength);
+
                     return
                     [
                         new TextContent($"The file `{filePath}` is attached below as binary data ({byteLength} bytes)."),
@@ -75,6 +82,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                 }
                 catch (Exception ex)
                 {
+                    _logger?.ReadFileDataFailed(ex, filePath);
+
                     return [new TextContent($"Error reading `{filePath}`: {ex.Message}")];
                 }
             }

@@ -1,10 +1,12 @@
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.Shared;
+using Microsoft.Extensions.Logging;
 
 namespace DeepAgentNet.FileSystems
 {
     public record FileSystemProviderOptions(IFileSystemAccess Access)
     {
+        public ILoggerFactory? LoggerFactory { get; init; }
         public Func<FileSystemEnvironmentInfo, string>? SystemPrompt { get; init; }
         public TokenLimitedToolOptions LsToolOptions { get; init; } = new();
         public TokenLimitedToolOptions ReadFileToolOptions { get; init; } = new();

@@ -3,6 +3,7 @@ using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 
 namespace DeepAgentNet.FileSystems.Internal.Tools
@@ -11,13 +12,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     {
         private readonly IFileSystemAccess _access;
         private readonly TokenLimitedToolOptions _options;
+        private readonly ILogger<FileReadToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        public FileReadToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options)
+        public FileReadToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _options = options;
+            _logger = loggerFactory?.CreateLogger<FileReadToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -51,6 +54,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.ReadingFile(filePath, offset, limit);
+
             try
             {
                 TruncatingStringBuilder? truncatingBuilder = _options.ResultTokenLimit.HasValue
@@ -80,6 +85,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
 
                 await FileToolGuards.RecordFileReadAsync(filePath, _access, cancellationToken);
 
+                _logger?.ReadFileCompleted(filePath, linesRead, totalLines);
+
                 return new Result
                 {
                     FilePath = filePath,
@@ -91,6 +98,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             }
             catch (Exception ex)
             {
+                _logger?.ReadFileFailed(ex, filePath);
+
                 return new Result
                 {
                     FilePath = filePath,

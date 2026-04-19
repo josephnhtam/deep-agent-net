@@ -1,6 +1,7 @@
 using DeepAgentNet.FileSystems.Internal.Tools;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 
 namespace DeepAgentNet.FileSystems.Internal
 {
@@ -14,16 +15,17 @@ namespace DeepAgentNet.FileSystems.Internal
             _options = options;
 
             FileLocks fileLocks = new();
+            ILoggerFactory? loggerFactory = options.LoggerFactory;
 
-            ListInfoToolProvider listInfoToolProvider = new(options.Access, options.LsToolOptions);
-            FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions);
-            FileGetDataToolProvider fileGetDataToolProvider = new(options.Access, options.DataLimitedToolOptions, fileLocks);
-            FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions, fileLocks);
-            FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions, fileLocks);
-            FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions, fileLocks);
-            FileDeleteToolProvider fileDeleteToolProvider = new(options.Access, options.DeleteFileToolOptions, fileLocks);
-            GlobToolProvider globToolProvider = new(options.Access, options.GlobToolOptions);
-            GrepToolProvider grepToolProvider = new(options.Access, options.GrepToolOptions);
+            ListInfoToolProvider listInfoToolProvider = new(options.Access, options.LsToolOptions, loggerFactory);
+            FileReadToolProvider fileReadToolProvider = new(options.Access, options.ReadFileToolOptions, loggerFactory);
+            FileGetDataToolProvider fileGetDataToolProvider = new(options.Access, options.DataLimitedToolOptions, fileLocks, loggerFactory);
+            FileWriteToolProvider fileWriteToolProvider = new(options.Access, options.WriteFileToolOptions, fileLocks, loggerFactory);
+            FileOverwriteToolProvider fileOverwriteToolProvider = new(options.Access, options.OverwriteFileToolOptions, fileLocks, loggerFactory);
+            FileEditToolProvider fileEditToolProvider = new(options.Access, options.EditFileToolOptions, fileLocks, loggerFactory);
+            FileDeleteToolProvider fileDeleteToolProvider = new(options.Access, options.DeleteFileToolOptions, fileLocks, loggerFactory);
+            GlobToolProvider globToolProvider = new(options.Access, options.GlobToolOptions, loggerFactory);
+            GrepToolProvider grepToolProvider = new(options.Access, options.GrepToolOptions, loggerFactory);
 
             _tools =
             [

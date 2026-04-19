@@ -3,6 +3,7 @@ using DeepAgentNet.Shared;
 using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
+using Microsoft.Extensions.Logging;
 using System.ComponentModel;
 using FileSystemInfo = DeepAgentNet.FileSystems.Contracts.FileSystemInfo;
 
@@ -12,13 +13,15 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
     {
         private readonly IFileSystemAccess _access;
         private readonly TokenLimitedToolOptions _options;
+        private readonly ILogger<GlobToolProvider>? _logger;
 
         public AITool Tool { get; }
 
-        public GlobToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options)
+        public GlobToolProvider(IFileSystemAccess access, TokenLimitedToolOptions options, ILoggerFactory? loggerFactory = null)
         {
             _access = access;
             _options = options;
+            _logger = loggerFactory?.CreateLogger<GlobToolProvider>();
 
             AIFunction function = AIFunctionFactory.Create(ExecuteAsync, new AIFunctionFactoryOptions
             {
@@ -50,6 +53,8 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
         {
             path = await _access.ResolvePathAsync(path ?? ".", cwdPath, cancellationToken).ConfigureAwait(false);
 
+            _logger?.Globbing(pattern, path);
+
             try
             {
                 IStringBuilder sb = _options.ResultTokenLimit.HasValue ?
@@ -58,11 +63,11 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         SharedConstants.TruncationGuidance) :
                     new StandardStringBuilder();
 
-                bool hasEntries = false;
+                int matchCount = 0;
 
                 await foreach (FileSystemInfo info in _access.GlobInfoAsync(pattern, path, cancellationToken).ConfigureAwait(false))
                 {
-                    hasEntries = true;
+                    matchCount++;
 
                     string line = $"{info.Path} ({info.Size} bytes)";
 
@@ -70,10 +75,14 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
                         break;
                 }
 
-                return hasEntries ? sb.ToString() : $"No files found matching pattern '{pattern}'";
+                _logger?.GlobCompleted(pattern, matchCount);
+
+                return matchCount > 0 ? sb.ToString() : $"No files found matching pattern '{pattern}'";
             }
             catch (Exception ex)
             {
+                _logger?.GlobFailed(ex, pattern);
+
                 return $"Error: {ex.Message}";
             }
         }

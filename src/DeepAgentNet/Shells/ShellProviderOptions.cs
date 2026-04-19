@@ -1,5 +1,6 @@
 using DeepAgentNet.Shared;
 using DeepAgentNet.Shells.Contracts;
+using Microsoft.Extensions.Logging;
 
 namespace DeepAgentNet.Shells
 {
@@ -9,5 +10,6 @@ namespace DeepAgentNet.Shells
         public string? SystemPrompt { get; init; }
         public Func<IReadOnlyList<string>, string>? Description { get; init; } = null;
         public ToolApprovalPolicy ApprovalPolicy { get; init; } = ToolApprovalPolicy.Required;
+        public ILoggerFactory? LoggerFactory { get; init; }
     }
 }
