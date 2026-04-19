@@ -101,13 +101,22 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             _logger?.SubAgentSessionCompleted(subAgent.Name, resolvedTaskId);
 
             await subAgent.Handle.OnSessionCompletedAsync(agent.Id, resolvedTaskId, cancellationToken).ConfigureAwait(false);
-            await SaveSessionEntryAsync(agent, session, resolvedTaskId, subAgent.Name, cancellationToken).ConfigureAwait(false);
+            bool sessionSaved = await SaveSessionEntryAsync(agent, session, resolvedTaskId, subAgent.Name, cancellationToken).ConfigureAwait(false);
 
             string result = response.Messages.Last().Text;
 
-            return $"""
-                task_id: {resolvedTaskId} (for resuming to continue this task if needed)
+            if (sessionSaved)
+            {
+                return $"""
+                    task_id: {resolvedTaskId} (for resuming to continue this task if needed)
 
+                    <task_result>
+                    {result}
+                    </task_result>
+                    """;
+            }
+
+            return $"""
                 <task_result>
                 {result}
                 </task_result>
@@ -252,11 +261,11 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             return stateBag.GetValue<SubAgentSessionEntry>(key);
         }
 
-        private async ValueTask SaveSessionEntryAsync(
+        private async ValueTask<bool> SaveSessionEntryAsync(
             AIAgent agent, AgentSession session, string taskId, string subAgentType, CancellationToken cancellationToken)
         {
             if (_parentSession?.StateBag is not { } stateBag)
-                return;
+                return false;
 
             try
             {
@@ -265,10 +274,12 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
                 string key = GetSubAgentSessionKey(taskId);
                 stateBag.SetValue(key, new SubAgentSessionEntry(subAgentType, serializedState));
+                return true;
             }
             catch (Exception ex) when (ex is not OperationCanceledException)
             {
                 _logger?.FailedToSerializeSubAgentSession(ex, taskId);
+                return false;
             }
         }
 
