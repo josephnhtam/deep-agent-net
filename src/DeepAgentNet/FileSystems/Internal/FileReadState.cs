@@ -1,3 +1,5 @@
+using DeepAgentNet.Shared.Internal;
+
 namespace DeepAgentNet.FileSystems.Internal
 {
     internal class FileReadState
@@ -8,17 +10,17 @@ namespace DeepAgentNet.FileSystems.Internal
 
         public void RecordRead(string filePath, DateTime fileLastWriteTimeUtc)
         {
-            ReadFiles[filePath] = fileLastWriteTimeUtc;
+            ReadFiles[PathHelper.NormalizePath(filePath)] = fileLastWriteTimeUtc;
         }
 
         public bool HasBeenRead(string filePath)
         {
-            return ReadFiles.ContainsKey(filePath);
+            return ReadFiles.ContainsKey(PathHelper.NormalizePath(filePath));
         }
 
         public bool IsStale(string filePath, DateTime currentLastWriteTimeUtc)
         {
-            return ReadFiles.TryGetValue(filePath, out DateTime recorded) && currentLastWriteTimeUtc > recorded;
+            return ReadFiles.TryGetValue(PathHelper.NormalizePath(filePath), out DateTime recorded) && currentLastWriteTimeUtc > recorded;
         }
     }
 }

@@ -24,10 +24,21 @@ namespace DeepAgentNet.FileSystems
             _logger = loggerFactory?.CreateLogger<FileSystemAccess>();
         }
 
+        public ValueTask<string> ResolvePathAsync(string path, string? cwdPath = null, CancellationToken cancellationToken = default)
+        {
+            if (!Path.IsPathFullyQualified(path))
+                path = Path.Combine(cwdPath ?? RootWorkingDirectory, path);
+
+            return new(ResolveFullPath(path));
+        }
+
         private string ResolveFullPath(string path)
         {
-            string fullPath = Path.IsPathFullyQualified(path) ?
-                path : Path.GetFullPath(Path.Combine(RootWorkingDirectory, path));
+            if (string.IsNullOrEmpty(path))
+                path = ".";
+
+            string fullPath = Path.GetFullPath(
+                Path.IsPathFullyQualified(path) ? path : Path.Combine(RootWorkingDirectory, path));
 
             if (_options.RestrictToRoot && !fullPath.StartsWith(RootWorkingDirectory))
             {

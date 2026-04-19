@@ -50,8 +50,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
-            if (!Path.IsPathFullyQualified(filePath))
-                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
+            filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
             if (oldString == newString)
                 return "No changes to make: oldString and newString are exactly the same.";

@@ -49,8 +49,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             int limit = 500,
             CancellationToken cancellationToken = default)
         {
-            if (!Path.IsPathFullyQualified(filePath))
-                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
+            filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
             try
             {

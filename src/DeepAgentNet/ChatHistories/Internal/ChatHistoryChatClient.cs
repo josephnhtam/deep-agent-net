@@ -51,6 +51,7 @@ namespace DeepAgentNet.ChatHistories.Internal
                 base.GetStreamingResponseAsync(requestMessages, options, cancellationToken);
 
             IAsyncEnumerator<ChatResponseUpdate> enumerator = streamingResponse.GetAsyncEnumerator(cancellationToken);
+            await using var _ = enumerator.ConfigureAwait(false);
 
             bool hasUpdates;
             try

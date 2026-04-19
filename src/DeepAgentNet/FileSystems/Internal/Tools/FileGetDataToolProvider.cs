@@ -1,7 +1,6 @@
 using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.FileSystems.Internal.Contracts;
 using DeepAgentNet.Shared;
-using DeepAgentNet.Shared.Internal;
 using DeepAgentNet.Shared.Internal.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
@@ -48,10 +47,7 @@ namespace DeepAgentNet.FileSystems.Internal.Tools
             string? cwdPath = null,
             CancellationToken cancellationToken = default)
         {
-            filePath = PathHelper.NormalizePath(filePath);
-
-            if (!Path.IsPathFullyQualified(filePath))
-                filePath = Path.Combine(cwdPath ?? _access.RootWorkingDirectory, filePath);
+            filePath = await _access.ResolvePathAsync(filePath, cwdPath, cancellationToken).ConfigureAwait(false);
 
             using (await _fileLocks.AcquireAsync(filePath, cancellationToken).ConfigureAwait(false))
             {

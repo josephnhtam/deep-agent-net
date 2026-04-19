@@ -17,7 +17,7 @@ namespace DeepAgentNet.Agents.Internal
 
         public override async Task<ChatResponse> GetResponseAsync(IEnumerable<ChatMessage> messages, ChatOptions? options = null, CancellationToken cancellationToken = default)
         {
-            List<ChatMessage> originalMessages = [..messages];
+            List<ChatMessage> originalMessages = [.. messages];
             IList<ChatMessage> chatMessages = originalMessages;
 
             List<ChatMessage> responseMessages = [];
@@ -36,17 +36,19 @@ namespace DeepAgentNet.Agents.Internal
                 ChatResponse response = await base.GetResponseAsync(chatMessages, options, cancellationToken);
                 conversationId = response.ConversationId ?? conversationId;
 
+                List<AIContent>? rejections = null;
+
                 foreach (var message in response.Messages)
                 {
-                    ChatMessage? addedMessage =
-                        await ProcessFunctionCallPreValidationAsync(message.Contents, cancellationToken);
+                    rejections = await ProcessFunctionCallPreValidationAsync(message.Contents, rejections, cancellationToken);
+                }
 
-                    if (addedMessage is not null)
-                    {
-                        preValidationRejected = true;
-                        (addedMessages ??= []).Add(addedMessage);
-                        response.Messages.Add(addedMessage);
-                    }
+                if (rejections is { Count: > 0 })
+                {
+                    preValidationRejected = true;
+                    var addedMessage = CreateRejectionMessage(rejections);
+                    (addedMessages ??= []).Add(addedMessage);
+                    response.Messages.Add(addedMessage);
                 }
 
                 FixupHistories(
@@ -79,7 +81,7 @@ namespace DeepAgentNet.Agents.Internal
             IEnumerable<ChatMessage> messages, ChatOptions? options = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
-            List<ChatMessage> originalMessages = [..messages];
+            List<ChatMessage> originalMessages = [.. messages];
             IList<ChatMessage> chatMessages = originalMessages;
 
             List<ChatMessage> responseMessages = [];
@@ -96,25 +98,28 @@ namespace DeepAgentNet.Agents.Internal
                 bool preValidationRejected = false;
                 addedMessages?.Clear();
 
+                List<AIContent>? rejections = null;
+
                 await foreach (ChatResponseUpdate update in
                     base.GetStreamingResponseAsync(chatMessages, options, cancellationToken))
                 {
-                    ChatMessage? addedMessage = await ProcessFunctionCallPreValidationAsync(update.Contents, cancellationToken);
+                    rejections = await ProcessFunctionCallPreValidationAsync(update.Contents, rejections, cancellationToken);
 
                     updates.Add(update);
                     yield return update;
+                }
 
-                    if (addedMessage is not null)
-                    {
-                        var addedUpdate = ConvertToolResultMessageToUpdate(
-                            addedMessage, options?.ConversationId, addedMessage.MessageId);
+                if (rejections?.Any() == true)
+                {
+                    preValidationRejected = true;
+                    var addedMessage = CreateRejectionMessage(rejections);
+                    (addedMessages ??= []).Add(addedMessage);
 
-                        preValidationRejected = true;
-                        (addedMessages ??= []).Add(addedMessage);
+                    var addedUpdate = ConvertToolResultMessageToUpdate(
+                        addedMessage, options?.ConversationId, addedMessage.MessageId);
 
-                        updates.Add(addedUpdate);
-                        yield return addedUpdate;
-                    }
+                    updates.Add(addedUpdate);
+                    yield return addedUpdate;
                 }
 
                 ChatResponse response = updates.ToChatResponse();
@@ -143,11 +148,9 @@ namespace DeepAgentNet.Agents.Internal
             }
         }
 
-        private async ValueTask<ChatMessage?> ProcessFunctionCallPreValidationAsync(
-            IList<AIContent> contents, CancellationToken cancellationToken)
+        private async ValueTask<List<AIContent>?> ProcessFunctionCallPreValidationAsync(
+            IList<AIContent> contents, List<AIContent>? rejections, CancellationToken cancellationToken)
         {
-            List<AIContent>? rejections = null;
-
             for (var i = 0; i < contents.Count; i++)
             {
                 FunctionCallContent? call = GetFunctionCallContent(contents[i]);
@@ -171,16 +174,13 @@ namespace DeepAgentNet.Agents.Internal
                 }
             }
 
-            if (rejections is not null)
-            {
-                return new ChatMessage(ChatRole.Tool, rejections)
-                {
-                    MessageId = $"PreValidation:{Guid.NewGuid():N}"
-                };
-            }
-
-            return null;
+            return rejections;
         }
+
+        private static ChatMessage CreateRejectionMessage(List<AIContent> rejections) => new(ChatRole.Tool, rejections)
+        {
+            MessageId = $"PreValidation:{Guid.NewGuid():N}"
+        };
 
         private static FunctionCallContent? GetFunctionCallContent(AIContent content) => content switch
         {
