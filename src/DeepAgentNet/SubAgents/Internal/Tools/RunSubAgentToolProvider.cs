@@ -64,7 +64,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             }
         };
 
-        private async ValueTask<string> ExecuteAsync(
+        private async ValueTask<SubAgentResult> ExecuteAsync(
             [Description("A short (3-5 words) description of the task")]
             string description,
             [Description("The detailed description and expected result of the task for the agent to perform")]
@@ -82,7 +82,7 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
             if (!resolvedSubAgent.HasValue)
             {
                 _logger?.UnknownSubAgentType(subAgentType);
-                return $"Error: invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys.Select(k => $"'{k}'"))}";
+                throw new ArgumentException($"Invoked agent of type {subAgentType}, the only allowed types are {string.Join(", ", _subAgentMap.Keys.Select(k => $"'{k}'"))}");
             }
 
             (SubAgent subAgent, AIAgent agent, AgentSession session, string resolvedTaskId, bool resumed) = resolvedSubAgent.Value;
@@ -107,20 +107,10 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
 
             if (sessionSaved)
             {
-                return $"""
-                    task_id: {resolvedTaskId} (for resuming to continue this task if needed)
-
-                    <task_result>
-                    {result}
-                    </task_result>
-                    """;
+                return new SubAgentResult(result, resolvedTaskId);
             }
 
-            return $"""
-                <task_result>
-                {result}
-                </task_result>
-                """;
+            return new SubAgentResult(result, null);
         }
 
         private async ValueTask<ResolvedSubAgent?> TryResolveSubAgentAsync(
@@ -348,6 +338,12 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 return response;
             }
         }
+
+        private record SubAgentResult(
+            [Description("The result from the subagent's execution")]
+            string Result,
+            [Description("Task Id for resuming to continue this task, or asking the subagent for more information if needed")]
+            string? TaskId);
 
         private static string GetSubAgentSessionKey(string taskId) => StateBagKeyPrefix + taskId;
         private record struct ResolvedSubAgent(SubAgent SubAgent, AIAgent Agent, AgentSession Session, string TaskId, bool Resumed);
