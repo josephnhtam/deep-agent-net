@@ -190,26 +190,26 @@ namespace DeepAgentNet.SubAgents.Internal.Tools
                 IFunctionCallPreValidValidator validator = CreateFunctionCallPreValidValidator(options);
                 builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(validator));
 
-                if (options.TodoList is not null)
-                    builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
-
                 if (options.Compaction is not null)
                 {
                     builder.UseCompactableChatHistory(options.Compaction);
                 }
+
+                if (options.TodoList is not null)
+                    builder.Use(inner => inner.AsTodoListChatClient(options.TodoList));
             }
             else
             {
                 if (_parentAgent?.GetService<FunctionCallPreValidatingChatClient>() is { } preValidatingClient)
                     builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidatingClient.FunctionCallPreValidator));
 
-                if (_defaultOptions.DeepAgentOptions.TodoList is not null)
-                    builder.Use(inner => inner.AsTodoListChatClient(_defaultOptions.DeepAgentOptions.TodoList));
-
                 if (_defaultOptions.DeepAgentOptions.Compaction is not null)
                 {
                     builder.UseCompactableChatHistory(_defaultOptions.DeepAgentOptions.Compaction);
                 }
+
+                if (_defaultOptions.DeepAgentOptions.TodoList is not null)
+                    builder.Use(inner => inner.AsTodoListChatClient(_defaultOptions.DeepAgentOptions.TodoList));
             }
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());

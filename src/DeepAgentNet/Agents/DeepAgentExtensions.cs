@@ -44,13 +44,13 @@ namespace DeepAgentNet.Agents
             IFunctionCallPreValidValidator preValidator = CreateFunctionCallPreValidValidator(deepAgentOptions);
             builder = builder.Use(inner => inner.AsFunctionCallPreValidatingChatClient(preValidator));
 
-            if (deepAgentOptions.TodoList is not null)
-                builder = builder.Use(inner => inner.AsTodoListChatClient(deepAgentOptions.TodoList));
-
             if (deepAgentOptions.Compaction is not null)
             {
                 builder = builder.UseCompactableChatHistory(deepAgentOptions.Compaction);
             }
+
+            if (deepAgentOptions.TodoList is not null)
+                builder = builder.Use(inner => inner.AsTodoListChatClient(deepAgentOptions.TodoList));
 
             builder = builder.Use(inner => inner.AsCallIdSetterChatClient());
 

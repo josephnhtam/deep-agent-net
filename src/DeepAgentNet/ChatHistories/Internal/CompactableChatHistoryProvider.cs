@@ -11,7 +11,9 @@ namespace DeepAgentNet.ChatHistories.Internal
         private readonly CompactionProviderOptions _options;
         private readonly ChatHistoryProvider _inner;
         private readonly ILogger? _logger;
+        private readonly ProviderSessionState<CompactionState> _compactionSessionState;
 
+        private const string CompactionTriggeredKey = "CompactionTriggered";
         private const string KeyCompactionMessageId = "CompactionMessageId";
 
         public CompactableChatHistoryProvider(CompactionProviderOptions options, ChatHistoryProvider inner)
@@ -19,21 +21,20 @@ namespace DeepAgentNet.ChatHistories.Internal
             _options = options;
             _inner = inner;
             _logger = options.LoggerFactory?.CreateLogger<CompactableChatHistoryProvider>();
+
+            _compactionSessionState = new(_ => new CompactionState(),
+                options.CompactionStateKey ?? nameof(CompactionState), AIJsonUtilities.DefaultOptions);
         }
 
         protected override async ValueTask<IEnumerable<ChatMessage>> ProvideChatHistoryAsync(
             InvokingContext context, CancellationToken cancellationToken = default)
         {
-            var sessionState = new ProviderSessionState<CompactionState>(
-                _ => new CompactionState(),
-                _options.CompactionStateKey ?? nameof(CompactionState),
-                AIJsonUtilities.DefaultOptions
-            );
+            TriggeredSessionState.SaveState(context.Session, new CompactionTriggeredState(false));
 
             List<ChatMessage> originalMessages = [.. await _inner.InvokingAsync(context, cancellationToken)];
             List<ChatMessage> messages = originalMessages;
 
-            CompactionState state = sessionState.GetOrInitializeState(context.Session);
+            CompactionState state = _compactionSessionState.GetOrInitializeState(context.Session);
 
             if (state.LastIndex.HasValue)
             {
@@ -62,6 +63,11 @@ namespace DeepAgentNet.ChatHistories.Internal
                     _options.CompactionStrategy, messages, _logger, cancellationToken)
             ];
 
+            if (compactedMessages.Count < messages.Count)
+            {
+                TriggeredSessionState.SaveState(context.Session, new CompactionTriggeredState(true));
+            }
+
             bool foundOriginal = false;
             for (int ci = 0; ci < compactedMessages.Count; ci++)
             {
@@ -86,7 +92,7 @@ namespace DeepAgentNet.ChatHistories.Internal
 
             state.OriginalRequestMessages = originalMessages;
 
-            sessionState.SaveState(context.Session, state);
+            _compactionSessionState.SaveState(context.Session, state);
             return compactedMessages;
         }
 
@@ -98,13 +104,7 @@ namespace DeepAgentNet.ChatHistories.Internal
         protected override ValueTask StoreChatHistoryAsync(
             InvokedContext context, CancellationToken cancellationToken = default)
         {
-            var sessionState = new ProviderSessionState<CompactionState>(
-                _ => new CompactionState(),
-                _options.CompactionStateKey ?? nameof(CompactionState),
-                AIJsonUtilities.DefaultOptions
-            );
-
-            CompactionState state = sessionState.GetOrInitializeState(context.Session);
+            CompactionState state = _compactionSessionState.GetOrInitializeState(context.Session);
 
             if (state.OriginalRequestMessages is not null)
             {
@@ -113,11 +113,16 @@ namespace DeepAgentNet.ChatHistories.Internal
                     state.OriginalRequestMessages, context.ResponseMessages ?? []);
 
                 state.OriginalRequestMessages = null;
-                sessionState.SaveState(context.Session, state);
+                _compactionSessionState.SaveState(context.Session, state);
             }
 
             return _inner.InvokedAsync(context, cancellationToken);
         }
+
+        internal static readonly ProviderSessionState<CompactionTriggeredState> TriggeredSessionState =
+            new(_ => new CompactionTriggeredState(false), CompactionTriggeredKey, AIJsonUtilities.DefaultOptions);
+
+        internal record CompactionTriggeredState(bool Triggered);
 
         private class CompactionState
         {

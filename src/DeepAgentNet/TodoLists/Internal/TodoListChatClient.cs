@@ -1,3 +1,4 @@
+using DeepAgentNet.Compactions;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 using System.Runtime.CompilerServices;
@@ -8,10 +9,12 @@ namespace DeepAgentNet.TodoLists.Internal
     internal class TodoListChatClient : DelegatingChatClient
     {
         private readonly int _reminderTurnThreshold;
+        private readonly ProviderSessionState<TodoListState> _todoSessionState;
 
         internal TodoListChatClient(IChatClient innerClient, TodoListProviderOptions? options) : base(innerClient)
         {
             _reminderTurnThreshold = (options ?? new()).ReminderTurnThreshold ?? TodoListDefaults.DefaultReminderTurnThreshold;
+            _todoSessionState = new(_ => new TodoListState(0, []), TodoListState.StateBagKey, AIJsonUtilities.DefaultOptions);
         }
 
         public override async Task<ChatResponse> GetResponseAsync(
@@ -23,7 +26,7 @@ namespace DeepAgentNet.TodoLists.Internal
             ChatResponse response = await base.GetResponseAsync(messages, options, cancellationToken)
                 .ConfigureAwait(false);
 
-            IncrementTurnCounter(options);
+            IncrementTurnCounter();
             return response;
         }
 
@@ -39,18 +42,20 @@ namespace DeepAgentNet.TodoLists.Internal
                 yield return update;
             }
 
-            IncrementTurnCounter(options);
+            IncrementTurnCounter();
         }
 
         private IEnumerable<ChatMessage> TryInjectTodoReminder(
             IEnumerable<ChatMessage> messages, ChatOptions? options)
         {
-            if (_reminderTurnThreshold <= 0)
+            AgentSession? session = AIAgent.CurrentRunContext?.Session;
+
+            if (session is null)
                 return messages;
 
-            TodoListState? state = GetTodoListState(options);
+            TodoListState state = _todoSessionState.GetOrInitializeState(session);
 
-            if (state is null || state.CurrentTurns < _reminderTurnThreshold || state.Todos.Count == 0)
+            if (state.Todos.Count == 0)
                 return messages;
 
             bool hasActiveTodos = state.Todos.Any(t =>
@@ -59,11 +64,18 @@ namespace DeepAgentNet.TodoLists.Internal
             if (!hasActiveTodos)
                 return messages;
 
+            bool periodicTrigger = _reminderTurnThreshold > 0 && state.CurrentTurns >= _reminderTurnThreshold;
+            bool compactionTrigger = session!.IsCompactionTriggered();
+
+            if (!periodicTrigger && !compactionTrigger)
+                return messages;
+
             List<ChatMessage> messageList = messages as List<ChatMessage> ?? messages.ToList();
             messageList.Add(new ChatMessage(ChatRole.User, BuildReminderMessage(state.Todos))
             {
                 MessageId = $"todo:{Guid.NewGuid():N}"
             });
+
             return messageList;
         }
 
@@ -84,26 +96,22 @@ namespace DeepAgentNet.TodoLists.Internal
                 """;
         }
 
-        private static void IncrementTurnCounter(ChatOptions? options)
+        private void IncrementTurnCounter()
         {
             AgentSession? session = AIAgent.CurrentRunContext?.Session;
             if (session is null)
                 return;
 
-            TodoListState? state = session.StateBag.GetValue<TodoListState>(TodoListState.StateBagKey);
-            if (state is null)
+            TodoListState state = _todoSessionState.GetOrInitializeState(session);
+
+            if (state.Todos.Count == 0)
                 return;
 
-            session.StateBag.SetValue(TodoListState.StateBagKey, state with
+            _todoSessionState.SaveState(session, state with
             {
                 CurrentTurns = state.CurrentTurns + 1
             });
         }
 
-        private static TodoListState? GetTodoListState(ChatOptions? options)
-        {
-            AgentSession? session = AIAgent.CurrentRunContext?.Session;
-            return session?.StateBag.GetValue<TodoListState>(TodoListState.StateBagKey);
-        }
     }
 }
