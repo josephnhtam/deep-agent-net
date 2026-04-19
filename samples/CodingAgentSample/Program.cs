@@ -1,5 +1,5 @@
-using Azure.AI.OpenAI;
 using CodingAgentSample;
+using CodingAgentSample.ChatClients;
 using DeepAgentNet.Agents;
 using DeepAgentNet.Compactions;
 using DeepAgentNet.FileSystems;
@@ -9,20 +9,19 @@ using DeepAgentNet.TodoLists;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
-using System.ClientModel;
+using Microsoft.Extensions.Logging;
 using System.Threading.Channels;
 
 const string workspace = "./workspace";
 
-var apiKey = Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")
-    ?? throw new InvalidOperationException("Set AZURE_OPENAI_API_KEY environment variable.");
-var endpoint = Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")
-    ?? throw new InvalidOperationException("Set AZURE_OPENAI_ENDPOINT environment variable.");
-var deploymentName = Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") ?? "gpt-5-mini";
+IChatClientProvider chatClientProvider = args switch
+{
+    _ when args.Contains("openai") => new OpenAIChatClientProvider(),
+    _ when args.Contains("vertexai") => new VertexAIChatClientProvider(),
+    _ => new AzureOpenAIChatClientProvider(),
+};
 
-var chatClient = new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey))
-    .GetChatClient(deploymentName)
-    .AsIChatClient();
+var chatClient = chatClientProvider.GetChatClient();
 
 var agentId = Guid.NewGuid().ToString();
 var channel = Channel.CreateUnbounded<AgentEvent>();
