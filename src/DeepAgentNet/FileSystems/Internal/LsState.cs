@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DeepAgentNet.Shared.Internal;
 
 namespace DeepAgentNet.FileSystems.Internal
@@ -6,16 +7,21 @@ namespace DeepAgentNet.FileSystems.Internal
     {
         public const string StateBagKey = "LsState";
 
-        public HashSet<string> ListedDirs { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public ConcurrentDictionary<string, byte> ListedDirs { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
         public void Record(string dirPath)
         {
-            ListedDirs.Add(PathHelper.NormalizePath(dirPath));
+            string key = PathHelper.NormalizePath(dirPath);
+
+            if (string.IsNullOrEmpty(key))
+                return;
+
+            ListedDirs[key] = 0;
         }
 
         public bool HasBeenListed(string dirPath)
         {
-            return ListedDirs.Contains(PathHelper.NormalizePath(dirPath));
+            return ListedDirs.ContainsKey(PathHelper.NormalizePath(dirPath));
         }
     }
 }

@@ -1,3 +1,4 @@
+using System.Collections.Concurrent;
 using DeepAgentNet.Shared.Internal;
 
 namespace DeepAgentNet.FileSystems.Internal
@@ -6,11 +7,16 @@ namespace DeepAgentNet.FileSystems.Internal
     {
         public const string StateBagKey = "FileReadState";
 
-        public Dictionary<string, DateTime> ReadFiles { get; set; } = new(StringComparer.OrdinalIgnoreCase);
+        public ConcurrentDictionary<string, DateTime> ReadFiles { get; set; } = new(StringComparer.OrdinalIgnoreCase);
 
         public void RecordRead(string filePath, DateTime fileLastWriteTimeUtc)
         {
-            ReadFiles[PathHelper.NormalizePath(filePath)] = fileLastWriteTimeUtc;
+            string key = PathHelper.NormalizePath(filePath);
+
+            if (string.IsNullOrEmpty(key))
+                return;
+
+            ReadFiles[key] = fileLastWriteTimeUtc;
         }
 
         public bool HasBeenRead(string filePath)
