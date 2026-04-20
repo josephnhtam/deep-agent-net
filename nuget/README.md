@@ -112,4 +112,4 @@ class MySubAgentHandle : ISubAgentHandle
 
 ## License
 
-[MIT](https://github.com/josephnhtam/deep-agent-net/blob/main/LICENSE)
+This project is licensed under the terms of the [MIT license](https://github.com/josephnhtam/deep-agent-net/blob/main/LICENSE)
