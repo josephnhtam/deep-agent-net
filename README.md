@@ -209,6 +209,8 @@ See [`samples/CodingAgentSample`](samples/CodingAgentSample) for an interactive 
 - Conversation compaction
 - Terminal UI with [Spectre.Console](https://spectreconsole.net)
 
+<video width="630" height="300" src="https://github.com/user-attachments/assets/862978dc-6ecd-4b79-adef-c373f2910fff"></video>
+
 ## Acknowledgements
 
 This project is inspired by [Deep Agents](https://github.com/langchain-ai/deepagents) by LangChain — an agent harness providing planning, filesystem, shell, and sub-agent tools out of the box.
