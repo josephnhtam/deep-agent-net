@@ -215,4 +215,4 @@ This project is inspired by [Deep Agents](https://github.com/langchain-ai/deepag
 
 ## License
 
-[MIT](LICENSE)
+This project is licensed under the terms of the [MIT license](LICENSE)
