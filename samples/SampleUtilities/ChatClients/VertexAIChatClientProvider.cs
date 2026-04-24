@@ -1,7 +1,7 @@
 using Google.GenAI;
 using Microsoft.Extensions.AI;
 
-namespace CodingAgentSample.ChatClients
+namespace SampleUtilities.ChatClients
 {
     public class VertexAIChatClientProvider : IChatClientProvider
     {

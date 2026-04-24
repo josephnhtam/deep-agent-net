@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace CodingAgentSample
+namespace SampleUtilities.AgentConsoles
 {
     public static class Extensions
     {
@@ -9,7 +9,7 @@ namespace CodingAgentSample
             if (callResult.AdditionalProperties?.ContainsKey("PreValidationRejected") == true)
                 return true;
 
-            if (callResult.Result is string resultString && resultString.StartsWith("Tool call invocation rejected."))
+            if (callResult.Result is string resultString && resultString.StartsWith("Error: Tool call invocation was rejected by user."))
                 return true;
 
             return false;

@@ -5,24 +5,26 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Channels;
 
-namespace CodingAgentSample
+namespace SampleUtilities.AgentConsoles
 {
-    public class CodingAgentConsole
+    public class AgentConsole
     {
+        private readonly string _title;
         private readonly IAgentTurnRunner _agentTurnRunner;
         private readonly ChannelReader<AgentEvent> _channel;
 
         private bool _inThinking;
 
-        public CodingAgentConsole(IAgentTurnRunner agentTurnRunner, ChannelReader<AgentEvent> channel)
+        public AgentConsole(string title, IAgentTurnRunner agentTurnRunner, ChannelReader<AgentEvent> channel)
         {
+            _title = title;
             _agentTurnRunner = agentTurnRunner;
             _channel = channel;
         }
 
         public async Task RunAsync(CancellationToken cancellationToken)
         {
-            AnsiConsole.Write(new Rule("[cyan bold]DeepAgentNet Coding Agent[/]").LeftJustified());
+            AnsiConsole.Write(new Rule($"[cyan bold]{_title}[/]").LeftJustified());
 
             while (!cancellationToken.IsCancellationRequested)
             {

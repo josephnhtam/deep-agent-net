@@ -1,5 +1,4 @@
 using CodingAgentSample;
-using CodingAgentSample.ChatClients;
 using DeepAgentNet.Agents;
 using DeepAgentNet.Compactions;
 using DeepAgentNet.FileSystems;
@@ -9,8 +8,8 @@ using DeepAgentNet.TodoLists;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
-using Microsoft.Extensions.Logging;
-using System.Threading.Channels;
+using SampleUtilities.AgentConsoles;
+using SampleUtilities.ChatClients;
 
 const string workspace = "./workspace";
 
@@ -22,10 +21,12 @@ IChatClientProvider chatClientProvider = args switch
 };
 
 var chatClient = chatClientProvider.GetChatClient();
-
 var agentId = Guid.NewGuid().ToString();
-var channel = Channel.CreateUnbounded<AgentEvent>();
 var cts = new CancellationTokenSource();
+
+var consoleBuilder = AgentConsoleBuilder.Create();
+var channelWriter = consoleBuilder.ChannelWriter;
+var handle = consoleBuilder.SubAgentHandle;
 
 Console.CancelKeyPress += (_, e) =>
 {
@@ -82,14 +83,13 @@ var root = new DirectoryInfo(workspace);
 if (!root.Exists) root.Create();
 
 var fileSystemAccess = new FileSystemAccess(root);
-var handle = new SubAgentHandle(channel.Writer);
 
 var deepAgentOptions = DeepAgentOptionsBuilder.Create()
     .WithTodoList(new TodoListProviderOptions
     {
         OnTodosUpdatedAsync = (aid, todos, ct) =>
         {
-            channel.Writer.TryWrite(new TodosUpdated(aid, todos));
+            channelWriter.TryWrite(new TodosUpdated(aid, todos));
             return ValueTask.CompletedTask;
         }
     })
@@ -143,8 +143,5 @@ var agent = chatClient.AsDeepAgent(
 
 var session = await agent.CreateSessionAsync();
 
-var agentTurnRunner = new AgentTurnRunner(agent, session, channel.Writer);
-
-var console = new CodingAgentConsole(agentTurnRunner, channel.Reader);
-
+var console = consoleBuilder.Build("DeepAgentNet Coding Agent", agent, session);
 await console.RunAsync(cts.Token);

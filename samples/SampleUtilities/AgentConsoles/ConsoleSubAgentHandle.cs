@@ -4,9 +4,9 @@ using Microsoft.Extensions.AI;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace CodingAgentSample
+namespace SampleUtilities.AgentConsoles
 {
-    internal class SubAgentHandle(ChannelWriter<AgentEvent> channel) : ISubAgentHandle
+    public class ConsoleSubAgentHandle(ChannelWriter<AgentEvent> channel) : ISubAgentHandle
     {
         private readonly ConcurrentDictionary<string, string> _taskDescriptions = new();
         private readonly ConcurrentDictionary<string, FunctionCallContent> _functionCalls = new();

@@ -2,7 +2,7 @@ using Microsoft.Extensions.AI;
 using OpenAI;
 using System.ClientModel;
 
-namespace CodingAgentSample.ChatClients
+namespace SampleUtilities.ChatClients
 {
     public class OpenAIChatClientProvider : IChatClientProvider
     {

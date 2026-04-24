@@ -1,6 +1,6 @@
 using Microsoft.Extensions.AI;
 
-namespace CodingAgentSample.ChatClients
+namespace SampleUtilities.ChatClients
 {
     public interface IChatClientProvider
     {

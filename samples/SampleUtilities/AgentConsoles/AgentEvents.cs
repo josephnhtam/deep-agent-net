@@ -1,7 +1,7 @@
 using DeepAgentNet.TodoLists;
 using Microsoft.Extensions.AI;
 
-namespace CodingAgentSample
+namespace SampleUtilities.AgentConsoles
 {
     public abstract record AgentEvent;
     public record AgentTextDelta(string Text) : AgentEvent;

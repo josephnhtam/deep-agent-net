@@ -6,6 +6,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Samples", "Samples", "{ADA1
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CodingAgentSample", "samples\CodingAgentSample\CodingAgentSample.csproj", "{1156FD21-45D3-4B44-AA43-052F0CE8915D}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DeepAgentNet.Tools", "src\DeepAgentNet.Tools\DeepAgentNet.Tools.csproj", "{9F9CB4C6-2120-49A3-8A70-275679CE40D0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SampleUtilities", "samples\SampleUtilities\SampleUtilities.csproj", "{CDBCEC78-D961-4AEA-9570-92BBD19DBBFA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU

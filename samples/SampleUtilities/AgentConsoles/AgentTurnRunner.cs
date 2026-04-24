@@ -3,7 +3,7 @@ using Microsoft.Extensions.AI;
 using System.Collections.Concurrent;
 using System.Threading.Channels;
 
-namespace CodingAgentSample
+namespace SampleUtilities.AgentConsoles
 {
     public interface IAgentTurnRunner
     {
