@@ -5,7 +5,8 @@
   <ItemGroup>
     <PackageVersion Include="Google.Cloud.VertexAI.Extensions" Version="1.0.0-beta07" />
     <PackageVersion Include="Google.GenAI" Version="1.6.1" />
-    <PackageVersion Include="Microsoft.Agents.AI" Version="1.1.0" />
+    <PackageVersion Include="Microsoft.Agents.AI" Version="1.2.0" />
+    <PackageVersion Include="Microsoft.Extensions.AI" Version="10.5.0" />
     <PackageVersion Include="Microsoft.Extensions.FileSystemGlobbing" Version="10.0.5" />
     <PackageVersion Include="Spectre.Console" Version="0.55.0" />
     <PackageVersion Include="Azure.AI.OpenAI" Version="2.1.0" />
