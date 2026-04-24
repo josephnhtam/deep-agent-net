@@ -9,7 +9,7 @@ namespace SampleUtilities.AgentConsoles
             if (callResult.AdditionalProperties?.ContainsKey("PreValidationRejected") == true)
                 return true;
 
-            if (callResult.Result is string resultString && resultString.StartsWith("Error: Tool call invocation was rejected by user."))
+            if (callResult.Result is string resultString && resultString.StartsWith("Tool call invocation rejected."))
                 return true;
 
             return false;
