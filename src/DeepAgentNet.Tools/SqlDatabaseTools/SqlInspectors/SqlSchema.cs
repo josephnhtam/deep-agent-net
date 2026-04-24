@@ -1,6 +1,6 @@
 using System.ComponentModel;
 
-namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors
+namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors
 {
     [Description("Information about a database schema")]
     public sealed record SqlSchemaInfo(

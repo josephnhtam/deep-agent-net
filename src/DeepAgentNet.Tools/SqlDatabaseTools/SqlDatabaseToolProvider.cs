@@ -1,8 +1,8 @@
 using DeepAgentNet.Shared;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors.Contracts;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Contracts;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
@@ -10,13 +10,13 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
 {
     public class SqlDatabaseToolProvider
     {
-        private readonly ISqlDatabaseInspector _inspector;
+        private readonly ISqlInspector _inspector;
         private readonly ISqlExecutor _executor;
 
         public IReadOnlyList<AITool> Tools { get; }
 
         public SqlDatabaseToolProvider(
-            ISqlDatabaseInspector inspector,
+            ISqlInspector inspector,
             ISqlExecutor executor,
             bool isReadOnly = true,
             ToolOptions? querySqlToolOptions = null,

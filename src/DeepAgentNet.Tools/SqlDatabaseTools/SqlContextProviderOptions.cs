@@ -1,11 +1,11 @@
 using DeepAgentNet.Shared;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors.Contracts;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Contracts;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools
 {
     public record SqlContextProviderOptions(
-        ISqlDatabaseInspector Inspector,
+        ISqlInspector Inspector,
         ISqlExecutor Executor)
     {
         public string? SystemPrompt { get; init; }

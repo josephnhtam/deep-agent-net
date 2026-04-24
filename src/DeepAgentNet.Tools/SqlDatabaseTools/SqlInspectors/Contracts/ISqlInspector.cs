@@ -1,6 +1,6 @@
-namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors.Contracts
+namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts
 {
-    public interface ISqlDatabaseInspector
+    public interface ISqlInspector
     {
         string Dialect { get; }
 

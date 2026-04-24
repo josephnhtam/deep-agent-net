@@ -1,16 +1,16 @@
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors.Contracts;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using System.Data.Common;
 
-namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlDatabaseInspectors
+namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors
 {
-    public class PostgresDatabaseInspector : ISqlDatabaseInspector
+    public class PostgresInspector : ISqlInspector
     {
         private readonly Func<DbConnection> _connectionFactory;
         private readonly string _defaultSchema;
 
         public string Dialect => "Postgres";
 
-        public PostgresDatabaseInspector(Func<DbConnection> connectionFactory, string defaultSchema = "public")
+        public PostgresInspector(Func<DbConnection> connectionFactory, string defaultSchema = "public")
         {
             _connectionFactory = connectionFactory;
             _defaultSchema = defaultSchema;
