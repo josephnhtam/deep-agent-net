@@ -1,34 +1,24 @@
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using System.Data.Common;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
 {
-    public class SqliteInspector : ISqlInspector
+    public class SqliteInspector : SqlInspector
     {
-        private readonly Func<DbConnection> _connectionFactory;
+        public override string Dialect => "SQLite";
 
-        public string Dialect => "SQLite";
-
-        public SqliteInspector(Func<DbConnection> connectionFactory)
+        public SqliteInspector(Func<DbConnection> connectionFactory) :
+            base(connectionFactory)
         {
-            _connectionFactory = connectionFactory;
         }
 
-        private async Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
-        {
-            DbConnection connection = _connectionFactory();
-            await connection.OpenAsync(cancellationToken);
-            return connection;
-        }
-
-        public ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(
+        public override ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(
             CancellationToken cancellationToken = default)
         {
             IReadOnlyList<SqlSchemaInfo> schemas = [new SqlSchemaInfo(Name: "main", Owner: "")];
             return new(schemas);
         }
 
-        public async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(
+        public override async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(
             string? schema = null,
             CancellationToken cancellationToken = default)
         {
@@ -59,14 +49,7 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
             return results;
         }
 
-        public ValueTask<SqlTableSchemaInfo> GetTableSchemaAsync(
-            SqlTableInfo table,
-            CancellationToken cancellationToken = default)
-        {
-            return GetTableSchemaAsync(table.Name, table.Schema, cancellationToken);
-        }
-
-        public async ValueTask<SqlTableSchemaInfo> GetTableSchemaAsync(
+        public override async ValueTask<SqlTableSchemaInfo> GetTableSchemaAsync(
             string table,
             string? schema = null,
             CancellationToken cancellationToken = default)
@@ -89,7 +72,7 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
             );
         }
 
-        public async ValueTask<SqlTableStats> GetTableStatsAsync(
+        public override async ValueTask<SqlTableStats> GetTableStatsAsync(
             string table,
             string? schema = null,
             CancellationToken cancellationToken = default)
@@ -283,13 +266,5 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
 
         private static string EscapeIdentifier(string identifier) =>
             identifier.Replace("\"", "\"\"");
-
-        private static string FormatBytes(long bytes) => bytes switch
-        {
-            >= 1_073_741_824 => $"{bytes / 1_073_741_824.0:F1} GB",
-            >= 1_048_576 => $"{bytes / 1_048_576.0:F1} MB",
-            >= 1_024 => $"{bytes / 1_024.0:F1} kB",
-            _ => $"{bytes} bytes"
-        };
     }
 }

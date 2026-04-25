@@ -1,37 +1,20 @@
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using System.Data.Common;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
 {
-    public class PostgresInspector : ISqlInspector
+    public class PostgresInspector : SqlInspector
     {
-        private readonly Func<DbConnection> _connectionFactory;
         private readonly string _defaultSchema;
 
-        public string Dialect => "Postgres";
+        public override string Dialect => "Postgres";
 
-        public PostgresInspector(Func<DbConnection> connectionFactory, string defaultSchema = "public")
+        public PostgresInspector(Func<DbConnection> connectionFactory, string defaultSchema = "public") :
+            base(connectionFactory)
         {
-            _connectionFactory = connectionFactory;
             _defaultSchema = defaultSchema;
         }
 
-        private async Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
-        {
-            DbConnection connection = _connectionFactory();
-            await connection.OpenAsync(cancellationToken);
-            return connection;
-        }
-
-        private static DbParameter CreateParameter(DbCommand cmd, string name, object? value)
-        {
-            DbParameter param = cmd.CreateParameter();
-            param.ParameterName = name;
-            param.Value = value ?? DBNull.Value;
-            return param;
-        }
-
-        public async ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(
+        public override async ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(
             CancellationToken cancellationToken = default)
         {
             const string sql = """
@@ -62,7 +45,7 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
             return results;
         }
 
-        public async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(
+        public override async ValueTask<IReadOnlyList<SqlTableInfo>> ListTablesAsync(
             string? schema = null,
             CancellationToken cancellationToken = default)
         {
@@ -95,40 +78,20 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
             return results;
         }
 
-        public ValueTask<SqlTableSchemaInfo> GetTableSchemaAsync(
-            SqlTableInfo table,
-            CancellationToken cancellationToken = default)
-        {
-            return GetTableSchemaAsync(table.Name, table.Schema, cancellationToken);
-        }
-
-        public async ValueTask<SqlTableSchemaInfo> GetTableSchemaAsync(
+        public override async ValueTask<SqlTableSchemaInfo> GetTableSchemaAsync(
             string table,
             string? schema = null,
             CancellationToken cancellationToken = default)
         {
             schema ??= _defaultSchema;
 
-            Task<IReadOnlyList<SqlColumnInfo>> columnsTask = GetColumnsAsync(table, schema, cancellationToken);
-            Task<IReadOnlyList<SqlConstraintInfo>> constraintsTask = GetConstraintsAsync(table, schema, cancellationToken);
-            Task<IReadOnlyList<SqlIndexInfo>> indexesTask = GetIndexesAsync(table, schema, cancellationToken);
-
-            await Task.WhenAll(columnsTask, constraintsTask, indexesTask);
-
-            IReadOnlyList<SqlColumnInfo> columns = await columnsTask;
-            if (columns.Count == 0)
-                throw new InvalidOperationException($"Table '{schema}.{table}' not found.");
-
-            return new SqlTableSchemaInfo(
-                Schema: schema,
-                Name: table,
-                Columns: columns,
-                Constraints: await constraintsTask,
-                Indexes: await indexesTask
-            );
+            return await CollectTableSchemaAsync(
+                table, schema,
+                GetColumnsAsync, GetConstraintsAsync, GetIndexesAsync,
+                cancellationToken);
         }
 
-        public async ValueTask<SqlTableStats> GetTableStatsAsync(
+        public override async ValueTask<SqlTableStats> GetTableStatsAsync(
             string table,
             string? schema = null,
             CancellationToken cancellationToken = default)
