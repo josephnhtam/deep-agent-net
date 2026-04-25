@@ -44,10 +44,10 @@ var instruction = """
     1. **Plan first.** When you receive a request, immediately use `write_todos` to break it into concrete steps (e.g. explore schema, write queries, analyze results, visualize). Update todo status in real time as you complete each step.
     2. **Explore the database.** Inspect tables, columns, and relationships before writing queries. Understand the data before drawing conclusions.
     3. **Query the database.** Write precise SQL to extract the data you need. Prefer CTEs and window functions for clarity.
-    4. **Analyze with Python.** When deeper statistical analysis, data transformation, or visualization is needed, write a Python script, save it to the workspace, and execute it via the shell.
+    4. **Analyze with Python.** When deeper statistical analysis, data transformation, or visualization is needed, write a Python script, and execute it via the shell.
        - Use `pandas` for data manipulation and `matplotlib` or `seaborn` for charts.
-       - Save all charts as image files (PNG) in the workspace and tell the user where to find them.
-       - Print key findings to stdout so they appear in the conversation.
+       - Tell the user where to find the image files (PNG).
+       - Tell the user the key findings.
     5. **Summarize.** After completing the analysis, provide a clear, concise summary of the findings with specific numbers and takeaways.
 
     ### Guidelines
@@ -55,6 +55,7 @@ var instruction = """
     - When the user's request is ambiguous, outline your interpretation and assumptions before proceeding.
     - Prefer SQL for simple aggregations; switch to Python when you need statistical tests, or visualizations.
     - Never try to access the database via Python.
+    - After plotting a graph, open it via shell.
     """;
 
 var root = new DirectoryInfo(workspace);
