@@ -200,6 +200,8 @@ Built-in tools can require human approval before execution. Configure per-tool p
 
 ## Sample
 
+### Coding Agent
+
 See [`samples/CodingAgentSample`](samples/CodingAgentSample) for an interactive terminal coding agent built with DeepAgentNet, featuring:
 
 - Streaming responses with reasoning output
@@ -209,7 +211,17 @@ See [`samples/CodingAgentSample`](samples/CodingAgentSample) for an interactive 
 - Conversation compaction
 - Terminal UI with [Spectre.Console](https://spectreconsole.net)
 
-<video width="630" height="300" src="https://github.com/user-attachments/assets/862978dc-6ecd-4b79-adef-c373f2910fff"></video>
+<video src="https://github.com/user-attachments/assets/862978dc-6ecd-4b79-adef-c373f2910fff"></video>
+
+### Data Analysis Agent
+
+See [`samples/DataAnalysisAgentSample`](samples/DataAnalysisAgentSample) for an interactive data analysis agent that queries databases, analyzes data, and generates visualizations, featuring:
+
+- SQL database tools (schema inspection, query execution) via `SqlDatabaseContextProvider`
+
+The sample uses the [Chinook](https://github.com/lerocha/chinook-database) SQLite database as a demo dataset.
+
+<video src="https://github.com/user-attachments/assets/09dd3067-4cea-411c-8332-8b32e39effbe"></video>
 
 ## Acknowledgements
 
