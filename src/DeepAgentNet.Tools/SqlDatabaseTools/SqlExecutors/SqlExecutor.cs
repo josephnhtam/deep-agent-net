@@ -8,11 +8,13 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
     {
         private readonly Func<DbConnection> _connectionFactory;
         private readonly SqlExecutorOptions _options;
+        private readonly ISqlInterceptor? _interceptor;
 
         protected SqlExecutor(Func<DbConnection> connectionFactory, SqlExecutorOptions? options)
         {
             _connectionFactory = connectionFactory ?? throw new ArgumentNullException(nameof(connectionFactory));
             _options = options ?? new();
+            _interceptor = _options.Interceptor;
         }
 
         private async Task<DbConnection> OpenConnectionAsync(CancellationToken cancellationToken)
@@ -43,6 +45,8 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
             TimeSpan? timeout = null,
             CancellationToken cancellationToken = default)
         {
+            sql = _interceptor?.Intercept(sql, readOnly) ?? sql;
+
             using CancellationTokenSource linkedCts = CreateTimeoutCancellationTokenSource(timeout, cancellationToken);
             CancellationToken linkedToken = linkedCts.Token;
 
@@ -82,6 +86,8 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
             TimeSpan? timeout = null,
             [EnumeratorCancellation] CancellationToken cancellationToken = default)
         {
+            sql = _interceptor?.Intercept(sql, readOnly) ?? sql;
+
             using CancellationTokenSource linkedCts = CreateTimeoutCancellationTokenSource(timeout, cancellationToken);
             CancellationToken linkedToken = linkedCts.Token;
 
