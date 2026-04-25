@@ -31,10 +31,11 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
         protected override ValueTask<AIContext> ProvideAIContextAsync(
             InvokingContext context, CancellationToken cancellationToken = default)
         {
+            SqlDatabaseInfo info = new(_options.Inspector.Dialect);
+
             return new(new AIContext
             {
-                Instructions = _options.SystemPrompt ??
-                    SqlDatabaseDefaults.GetSystemPrompt(_options.Inspector.Dialect),
+                Instructions = _options.SystemPrompt?.Invoke(info) ?? SqlDatabaseDefaults.GetSystemPrompt(info),
                 Tools = _tools,
             });
         }

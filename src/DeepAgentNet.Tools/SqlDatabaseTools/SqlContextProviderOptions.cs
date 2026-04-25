@@ -13,7 +13,7 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
         ISqlInspector Inspector,
         ISqlExecutor Executor)
     {
-        public string? SystemPrompt { get; init; }
+        public Func<SqlDatabaseInfo, string>? SystemPrompt { get; init; }
         public bool IsReadOnly { get; init; } = true;
         public SqlQueryToolOptions QuerySqlToolOptions { get; init; } = new();
         public SqlQueryToolOptions ExecuteSqlToolOptions { get; init; } = new();

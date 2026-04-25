@@ -58,10 +58,10 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
             Use this tool to understand data volumes before writing queries that may return large result sets.
             """;
 
-        public static string GetSystemPrompt(string dialect) => $"""
+        public static string GetSystemPrompt(SqlDatabaseInfo info) => $"""
             ## SQL Database Tools
 
-            You have access to a {dialect} database through the following tools:
+            You have access to a {info.Dialect} database through the following tools:
             - `{QuerySqlToolName}`: Execute read-only SQL queries.
             - `{ExecuteSqlToolName}`: Execute SQL write statements (INSERT, UPDATE, DELETE). This tool may not be available in read-only mode.
             - `{ListSchemasToolName}`: List database schemas.
