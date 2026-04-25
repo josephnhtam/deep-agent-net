@@ -225,7 +225,7 @@ The sample uses the [Chinook](https://github.com/lerocha/chinook-database) SQLit
 
 ## Acknowledgements
 
-This project is inspired by [Deep Agents](https://github.com/langchain-ai/deepagents) by LangChain — an agent harness providing planning, filesystem, shell, and sub-agent tools out of the box.
+This project is inspired by [deepagents](https://github.com/langchain-ai/deepagents) by LangChain — an agent harness providing planning, filesystem, shell, and sub-agent tools out of the box.
 
 ## License
 
