@@ -16,7 +16,7 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
         public Func<SqlDatabaseInfo, string>? SystemPrompt { get; init; }
         public bool IsReadOnly { get; init; } = true;
         public SqlQueryToolOptions QuerySqlToolOptions { get; init; } = new();
-        public SqlQueryToolOptions ExecuteSqlToolOptions { get; init; } = new();
+        public SqlQueryToolOptions ExecuteSqlToolOptions { get; init; } = new() { ApprovalPolicy = ToolApprovalPolicy.Required };
         public ToolOptions ListSchemasToolOptions { get; init; } = new();
         public ToolOptions ListTablesToolOptions { get; init; } = new();
         public ToolOptions GetTableSchemaToolOptions { get; init; } = new();
