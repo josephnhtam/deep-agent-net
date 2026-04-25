@@ -4,14 +4,19 @@ using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools
 {
+    public record SqlQueryToolOptions : ToolOptions
+    {
+        public int? MaxRows { get; init; }
+    }
+
     public record SqlContextProviderOptions(
         ISqlInspector Inspector,
         ISqlExecutor Executor)
     {
         public string? SystemPrompt { get; init; }
         public bool IsReadOnly { get; init; } = true;
-        public ToolOptions QuerySqlToolOptions { get; init; } = new();
-        public ToolOptions ExecuteSqlToolOptions { get; init; } = new();
+        public SqlQueryToolOptions QuerySqlToolOptions { get; init; } = new();
+        public SqlQueryToolOptions ExecuteSqlToolOptions { get; init; } = new();
         public ToolOptions ListSchemasToolOptions { get; init; } = new();
         public ToolOptions ListTablesToolOptions { get; init; } = new();
         public ToolOptions GetTableSchemaToolOptions { get; init; } = new();

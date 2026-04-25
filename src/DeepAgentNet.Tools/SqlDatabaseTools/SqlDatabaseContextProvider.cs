@@ -12,18 +12,20 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
         {
             _options = options;
 
-            SqlDatabaseToolProvider toolProvider = new(
+            SqlInspectorToolProvider inspectorToolProvider = new(
                 options.Inspector,
-                options.Executor,
-                options.IsReadOnly,
-                options.QuerySqlToolOptions,
-                options.ExecuteSqlToolOptions,
                 options.ListSchemasToolOptions,
                 options.ListTablesToolOptions,
                 options.GetTableSchemaToolOptions,
                 options.GetTableStatsToolOptions);
 
-            _tools = toolProvider.Tools;
+            SqlExecutorToolProvider executorToolProvider = new(
+                options.Executor,
+                options.IsReadOnly,
+                options.QuerySqlToolOptions,
+                options.ExecuteSqlToolOptions);
+
+            _tools = [.. inspectorToolProvider.Tools, .. executorToolProvider.Tools];
         }
 
         protected override ValueTask<AIContext> ProvideAIContextAsync(

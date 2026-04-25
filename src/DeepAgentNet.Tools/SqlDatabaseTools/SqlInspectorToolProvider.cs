@@ -1,6 +1,4 @@
 using DeepAgentNet.Shared;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Contracts;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using Microsoft.Extensions.AI;
@@ -8,40 +6,28 @@ using System.ComponentModel;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools
 {
-    public class SqlDatabaseToolProvider
+    public class SqlInspectorToolProvider
     {
         private readonly ISqlInspector _inspector;
-        private readonly ISqlExecutor _executor;
 
         public IReadOnlyList<AITool> Tools { get; }
 
-        public SqlDatabaseToolProvider(
+        public SqlInspectorToolProvider(
             ISqlInspector inspector,
-            ISqlExecutor executor,
-            bool isReadOnly = true,
-            ToolOptions? querySqlToolOptions = null,
-            ToolOptions? executeSqlToolOptions = null,
             ToolOptions? listSchemasToolOptions = null,
             ToolOptions? listTablesToolOptions = null,
             ToolOptions? getTableSchemaToolOptions = null,
             ToolOptions? getTableStatsToolOptions = null)
         {
             _inspector = inspector;
-            _executor = executor;
 
-            querySqlToolOptions ??= new();
-            executeSqlToolOptions ??= new();
             listSchemasToolOptions ??= new();
             listTablesToolOptions ??= new();
             getTableSchemaToolOptions ??= new();
             getTableStatsToolOptions ??= new();
 
-            List<AITool> tools =
+            Tools =
             [
-                CreateTool(QuerySqlAsync, SqlDatabaseDefaults.QuerySqlToolName,
-                    querySqlToolOptions.Description ?? SqlDatabaseDefaults.QuerySqlToolDescription,
-                    querySqlToolOptions.ApprovalPolicy),
-
                 CreateTool(ListSchemasAsync, SqlDatabaseDefaults.ListSchemasToolName,
                     listSchemasToolOptions.Description ?? SqlDatabaseDefaults.ListSchemasToolDescription,
                     listSchemasToolOptions.ApprovalPolicy),
@@ -58,15 +44,6 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
                     getTableStatsToolOptions.Description ?? SqlDatabaseDefaults.GetTableStatsToolDescription,
                     getTableStatsToolOptions.ApprovalPolicy),
             ];
-
-            if (!isReadOnly)
-            {
-                tools.Add(CreateTool(ExecuteSqlAsync, SqlDatabaseDefaults.ExecuteSqlToolName,
-                    executeSqlToolOptions.Description ?? SqlDatabaseDefaults.ExecuteSqlToolDescription,
-                    executeSqlToolOptions.ApprovalPolicy));
-            }
-
-            Tools = tools;
         }
 
         private static AITool CreateTool(Delegate method, string name, string description, ToolApprovalPolicy approvalPolicy)
@@ -79,42 +56,6 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
 
             return approvalPolicy == ToolApprovalPolicy.Required
                 ? new ApprovalRequiredAIFunction(function) : function;
-        }
-
-        private async ValueTask<SqlQueryResult> QuerySqlAsync(
-            [Description("The SQL query to execute")]
-            string sql,
-            [Description("Maximum number of rows to return in the result set")]
-            int maxRows = 100,
-            [Description("Optional timeout for the query execution")]
-            TimeSpan? timeout = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await _executor.ExecuteAsync(
-                sql,
-                parameters: null,
-                maxRows: maxRows,
-                readOnly: true,
-                timeout: timeout,
-                cancellationToken: cancellationToken);
-        }
-
-        private async ValueTask<SqlQueryResult> ExecuteSqlAsync(
-            [Description("The SQL statement to execute (INSERT, UPDATE, DELETE)")]
-            string sql,
-            [Description("Maximum number of rows to return in the result set")]
-            int maxRows = 100,
-            [Description("Optional timeout for the statement execution")]
-            TimeSpan? timeout = null,
-            CancellationToken cancellationToken = default)
-        {
-            return await _executor.ExecuteAsync(
-                sql,
-                parameters: null,
-                maxRows: maxRows,
-                readOnly: false,
-                timeout: timeout,
-                cancellationToken: cancellationToken);
         }
 
         private async ValueTask<IReadOnlyList<SqlSchemaInfo>> ListSchemasAsync(

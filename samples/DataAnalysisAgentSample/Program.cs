@@ -54,8 +54,7 @@ var instruction = """
     - Be direct and concise. No unnecessary preamble.
     - When the user's request is ambiguous, outline your interpretation and assumptions before proceeding.
     - Prefer SQL for simple aggregations; switch to Python when you need statistical tests, or visualizations.
-    - Never try to access the database via Python.
-    - After plotting a graph, open it via shell.
+    - Never try to access the database directly.
     """;
 
 var root = new DirectoryInfo(workspace);
