@@ -39,7 +39,7 @@ namespace DeepAgentNet.Shells.Internal.Tools
             ParameterDescriptionProvider = property => property.Name switch
             {
                 "shellName" => $"The name of the shell to use. Available: {string.Join(", ", shellNames.Select(s => $"'{s}'"))}",
-                "cwdPath" => $"The working directory in which to run the command. Use this instead of cd. Defaults to '{_defaultWorkingDirectory ?? Directory.GetCurrentDirectory()}'.",
+                "cwdPath" => $"The working directory in which to run the command. Defaults to '{_defaultWorkingDirectory ?? Directory.GetCurrentDirectory()}'",
                 _ => null
             }
         };
