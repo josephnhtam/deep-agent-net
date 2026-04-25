@@ -1,3 +1,5 @@
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Internal;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Internal;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
 
@@ -22,8 +24,10 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
             SqlExecutorToolProvider executorToolProvider = new(
                 options.Executor,
                 options.IsReadOnly,
+                options.FileSystemAccess,
                 options.QuerySqlToolOptions,
-                options.ExecuteSqlToolOptions);
+                options.ExecuteSqlToolOptions,
+                options.ExportSqlCsvToolOptions);
 
             _tools = [.. inspectorToolProvider.Tools, .. executorToolProvider.Tools];
         }

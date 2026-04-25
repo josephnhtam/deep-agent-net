@@ -1,7 +1,7 @@
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using System.Data.Common;
 
-namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors
+namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters
 {
     public class SqliteInspector : ISqlInspector
     {

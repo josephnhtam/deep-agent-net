@@ -1,6 +1,6 @@
 using System.Data.Common;
 
-namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
+namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Adapters
 {
     public class SqliteExecutor : SqlExecutor
     {

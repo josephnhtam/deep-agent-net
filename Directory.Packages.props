@@ -3,6 +3,7 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup>
+    <PackageVersion Include="CsvHelper" Version="33.0.1" />
     <PackageVersion Include="Google.Cloud.VertexAI.Extensions" Version="1.0.0-beta07" />
     <PackageVersion Include="Google.GenAI" Version="1.6.1" />
     <PackageVersion Include="Microsoft.Agents.AI" Version="1.2.0" />

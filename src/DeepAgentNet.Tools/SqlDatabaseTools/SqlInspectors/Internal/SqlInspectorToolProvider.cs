@@ -1,12 +1,11 @@
 using DeepAgentNet.Shared;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
 using Microsoft.Extensions.AI;
 using System.ComponentModel;
 
-namespace DeepAgentNet.Tools.SqlDatabaseTools
+namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Internal
 {
-    public class SqlInspectorToolProvider
+    internal class SqlInspectorToolProvider
     {
         private readonly ISqlInspector _inspector;
 

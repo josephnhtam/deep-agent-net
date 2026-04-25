@@ -5,14 +5,14 @@ using DeepAgentNet.Shells;
 using DeepAgentNet.SubAgents;
 using DeepAgentNet.TodoLists;
 using DeepAgentNet.Tools.SqlDatabaseTools;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors;
-using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Adapters;
+using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Adapters;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.AI;
 using SampleUtilities.AgentConsoles;
 using SampleUtilities.ChatClients;
-using Microsoft.Data.Sqlite;
 
 const string workspace = "./workspace";
 
@@ -104,7 +104,7 @@ var agent = chatClient.AsDeepAgent(
             new SqlDatabaseContextProvider(new SqlContextProviderOptions(
                 Inspector: new SqliteInspector(connectionFactory),
                 Executor: new SqliteExecutor(connectionFactory)
-            ) { IsReadOnly = true })
+            ) { IsReadOnly = true, FileSystemAccess = fileSystemAccess })
         ]
     },
     deepAgentOptions: deepAgentOptions);

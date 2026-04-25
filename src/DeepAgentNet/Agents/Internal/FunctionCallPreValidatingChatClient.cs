@@ -114,7 +114,7 @@ namespace DeepAgentNet.Agents.Internal
                 {
                     for (; lastYieldedIndex < updates.Count; lastYieldedIndex++)
                         yield return updates[lastYieldedIndex];
-                        
+
                     yield break;
                 }
 
@@ -125,7 +125,7 @@ namespace DeepAgentNet.Agents.Internal
                 {
                     for (; lastYieldedIndex < updates.Count; lastYieldedIndex++)
                         yield return updates[lastYieldedIndex];
-                        
+
                     yield break;
                 }
 

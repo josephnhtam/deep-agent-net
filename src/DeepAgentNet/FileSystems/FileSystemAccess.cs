@@ -298,6 +298,37 @@ namespace DeepAgentNet.FileSystems
             }
         }
 
+        public async ValueTask WriteAsync(string filePath, Func<Stream, Task> writeAction, CancellationToken cancellationToken = default)
+        {
+            string fullPath = ResolveFullPath(filePath);
+            _logger?.WritingContent(fullPath);
+
+            FileInfo fileInfo = new(fullPath);
+            bool isSymlink = fileInfo.Exists && fileInfo.Attributes.HasFlag(FileAttributes.ReparsePoint);
+
+            if (isSymlink)
+                throw new IOException($"Cannot write to {filePath} because it is a symlink. Symlinks are not allowed.");
+
+            if (fileInfo.Exists)
+                throw new IOException($"Cannot write to {filePath} because it already exists.");
+
+            EnsureDirectory(fullPath);
+
+            try
+            {
+                var fileStream = new FileStream(fullPath, FileMode.CreateNew, FileAccess.Write, FileShare.None);
+                await using var _ = fileStream.ConfigureAwait(false);
+
+                await writeAction(fileStream).ConfigureAwait(false);
+                await fileStream.FlushAsync(cancellationToken).ConfigureAwait(false);
+            }
+            catch (Exception ex)
+            {
+                _logger?.FailedToWriteFile(ex, fullPath);
+                throw;
+            }
+        }
+
         public async ValueTask OverwriteAsync(string filePath, string content, CancellationToken cancellationToken = default)
         {
             string fullPath = ResolveFullPath(filePath);

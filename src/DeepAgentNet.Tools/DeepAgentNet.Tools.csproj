@@ -9,6 +9,7 @@
     <Import Project="$(SolutionDir)nuget\nuget-package.props"/>
 
     <ItemGroup>
+        <PackageReference Include="CsvHelper"/>
         <PackageReference Include="Microsoft.Agents.AI"/>
     </ItemGroup>
 

@@ -1,3 +1,4 @@
+using DeepAgentNet.FileSystems.Contracts;
 using DeepAgentNet.Shared;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Contracts;
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlInspectors.Contracts;
@@ -15,8 +16,10 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools
     {
         public Func<SqlDatabaseInfo, string>? SystemPrompt { get; init; }
         public bool IsReadOnly { get; init; } = true;
+        public IFileSystemAccess? FileSystemAccess { get; init; }
         public SqlQueryToolOptions QuerySqlToolOptions { get; init; } = new();
         public SqlQueryToolOptions ExecuteSqlToolOptions { get; init; } = new() { ApprovalPolicy = ToolApprovalPolicy.Required };
+        public SqlQueryToolOptions ExportSqlCsvToolOptions { get; init; } = new() { MaxRows = 10_000, ApprovalPolicy = ToolApprovalPolicy.Required };
         public ToolOptions ListSchemasToolOptions { get; init; } = new();
         public ToolOptions ListTablesToolOptions { get; init; } = new();
         public ToolOptions GetTableSchemaToolOptions { get; init; } = new();

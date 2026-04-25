@@ -1,5 +1,6 @@
 using DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Contracts;
 using System.Data.Common;
+using System.Runtime.CompilerServices;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
 {
@@ -19,20 +20,6 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
             DbConnection connection = _connectionFactory();
             await connection.OpenAsync(cancellationToken);
             return connection;
-        }
-
-        private static void BindParameters(DbCommand cmd, IReadOnlyDictionary<string, object?>? parameters)
-        {
-            if (parameters is null)
-                return;
-
-            foreach (KeyValuePair<string, object?> kvp in parameters)
-            {
-                DbParameter param = cmd.CreateParameter();
-                param.ParameterName = kvp.Key;
-                param.Value = kvp.Value ?? DBNull.Value;
-                cmd.Parameters.Add(param);
-            }
         }
 
         private CancellationTokenSource CreateTimeoutCancellationTokenSource(
@@ -71,38 +58,97 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors
 
             await using DbDataReader reader = await cmd.ExecuteReaderAsync(linkedToken);
 
-            List<string> columns = new(reader.FieldCount);
-            for (int i = 0; i < reader.FieldCount; i++)
+            List<string> columns = ReadColumns(reader);
+            List<IReadOnlyList<object?>> rows = new();
+
+            await foreach (var values in ReadRowsAsync(reader, maxRows, linkedToken).ConfigureAwait(false))
             {
-                columns.Add(reader.GetName(i));
+                rows.Add(values);
             }
 
-            List<IReadOnlyList<object?>> rows = new();
+            return new SqlQueryResult(
+                Columns: columns,
+                Rows: rows,
+                RowCount: rows.Count,
+                AffectedRows: reader.RecordsAffected
+            );
+        }
+
+        public async IAsyncEnumerable<SqlRow> ExecuteRowsAsync(
+            string sql,
+            IReadOnlyDictionary<string, object?>? parameters = null,
+            int? maxRows = null,
+            bool readOnly = false,
+            TimeSpan? timeout = null,
+            [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        {
+            using CancellationTokenSource linkedCts = CreateTimeoutCancellationTokenSource(timeout, cancellationToken);
+            CancellationToken linkedToken = linkedCts.Token;
+
+            await using DbConnection conn = await OpenConnectionAsync(linkedToken);
+
+            await using DbTransaction? tx = readOnly ?
+                await BeginReadOnlyTransactionAsync(conn, linkedToken) : null;
+
+            await using DbCommand cmd = conn.CreateCommand();
+            cmd.CommandText = sql;
+            cmd.Transaction = tx;
+            BindParameters(cmd, parameters);
+
+            await using DbDataReader reader = await cmd.ExecuteReaderAsync(linkedToken);
+
+            List<string> columns = ReadColumns(reader);
+
+            await foreach (var values in ReadRowsAsync(reader, maxRows, linkedToken).ConfigureAwait(false))
+            {
+                yield return new SqlRow(columns, values);
+            }
+        }
+
+        private static List<string> ReadColumns(DbDataReader reader)
+        {
+            List<string> columns = new(reader.FieldCount);
+
+            for (int i = 0; i < reader.FieldCount; i++)
+                columns.Add(reader.GetName(i));
+
+            return columns;
+        }
+
+        private static async IAsyncEnumerable<object?[]> ReadRowsAsync(
+            DbDataReader reader, int? maxRows,
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
             int rowCount = 0;
 
-            while (await reader.ReadAsync(linkedToken))
+            while (await reader.ReadAsync(cancellationToken))
             {
-                if (rowCount >= maxRows)
+                if (maxRows.HasValue && rowCount >= maxRows.Value)
                     break;
 
                 object?[] values = new object?[reader.FieldCount];
-                for (int i = 0; i < reader.FieldCount; i++)
-                {
-                    values[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
-                }
 
-                rows.Add(values);
+                for (int i = 0; i < reader.FieldCount; i++)
+                    values[i] = reader.IsDBNull(i) ? null : reader.GetValue(i);
+
+                yield return values;
+
                 rowCount++;
             }
+        }
 
-            SqlQueryResult result = new(
-                Columns: columns,
-                Rows: rows,
-                RowCount: rowCount,
-                AffectedRows: reader.RecordsAffected
-            );
+        private static void BindParameters(DbCommand cmd, IReadOnlyDictionary<string, object?>? parameters)
+        {
+            if (parameters is null)
+                return;
 
-            return result;
+            foreach (KeyValuePair<string, object?> kvp in parameters)
+            {
+                DbParameter param = cmd.CreateParameter();
+                param.ParameterName = kvp.Key;
+                param.Value = kvp.Value ?? DBNull.Value;
+                cmd.Parameters.Add(param);
+            }
         }
 
         protected abstract ValueTask<DbTransaction?> BeginReadOnlyTransactionAsync(

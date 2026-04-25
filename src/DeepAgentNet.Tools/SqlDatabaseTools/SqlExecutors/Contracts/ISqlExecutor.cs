@@ -9,5 +9,13 @@ namespace DeepAgentNet.Tools.SqlDatabaseTools.SqlExecutors.Contracts
             bool readOnly = false,
             TimeSpan? timeout = null,
             CancellationToken cancellationToken = default);
+
+        IAsyncEnumerable<SqlRow> ExecuteRowsAsync(
+            string sql,
+            IReadOnlyDictionary<string, object?>? parameters = null,
+            int? maxRows = null,
+            bool readOnly = false,
+            TimeSpan? timeout = null,
+            CancellationToken cancellationToken = default);
     }
 }
