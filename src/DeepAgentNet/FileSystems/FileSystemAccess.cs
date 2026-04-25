@@ -26,6 +26,9 @@ namespace DeepAgentNet.FileSystems
 
         public ValueTask<string> ResolvePathAsync(string path, string? cwdPath = null, CancellationToken cancellationToken = default)
         {
+            if (cwdPath is not null && !Path.IsPathFullyQualified(cwdPath))
+                cwdPath = Path.Combine(RootWorkingDirectory, cwdPath);
+
             if (!Path.IsPathFullyQualified(path))
                 path = Path.Combine(cwdPath ?? RootWorkingDirectory, path);
 

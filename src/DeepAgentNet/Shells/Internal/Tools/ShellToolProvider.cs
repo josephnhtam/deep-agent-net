@@ -64,6 +64,9 @@ namespace DeepAgentNet.Shells.Internal.Tools
 
             string resolvedDir = cwdPath ?? _defaultWorkingDirectory ?? Directory.GetCurrentDirectory();
 
+            if (!Path.IsPathFullyQualified(resolvedDir) && _defaultWorkingDirectory is not null)
+                resolvedDir = Path.GetFullPath(Path.Combine(_defaultWorkingDirectory, resolvedDir));
+
             _logger?.ExecutingShellCommand(shellName, command, resolvedDir);
 
             CommandResult result = await runner.RunAsync(command, resolvedDir, timeout, cancellationToken);
