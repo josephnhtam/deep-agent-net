@@ -20,7 +20,7 @@ namespace DeepAgentNet.Tools.CodeInterpreterTools.AzureDynamicSessions.Internal.
             IAzureDynamicSessionsClient client,
             IFileSystemAccess fileSystemAccess,
             string sessionId,
-            string language = "Python",
+            string language,
             TokenLimitedToolOptions? options = null)
         {
             _client = client;

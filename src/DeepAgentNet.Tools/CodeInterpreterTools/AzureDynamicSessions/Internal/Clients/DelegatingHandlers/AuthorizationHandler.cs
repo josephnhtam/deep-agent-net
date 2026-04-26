@@ -1,8 +1,6 @@
 using DeepAgentNet.Tools.CodeInterpreterTools.AzureDynamicSessions.Contracts;
 using System.Net;
 using System.Net.Http.Headers;
-using System.Text.Json;
-using System.Text.Json.Serialization;
 
 namespace DeepAgentNet.Tools.CodeInterpreterTools.AzureDynamicSessions.Internal.Clients.DelegatingHandlers
 {
