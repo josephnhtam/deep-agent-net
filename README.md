@@ -211,8 +211,8 @@ See [`samples/CodingAgentSample`](samples/CodingAgentSample) for an interactive 
 - Conversation compaction
 - Terminal UI with [Spectre.Console](https://spectreconsole.net)
 
-[Demo](https://github.com/user-attachments/assets/862978dc-6ecd-4b79-adef-c373f2910fff)
-<video src="https://github.com/user-attachments/assets/862978dc-6ecd-4b79-adef-c373f2910fff"></video>
+[Demo](https://github.com/user-attachments/assets/482ee6f6-a62f-4794-b512-75256db4b5ba)
+<video src="https://github.com/user-attachments/assets/482ee6f6-a62f-4794-b512-75256db4b5ba"></video>
 
 ### Data Analysis Agent
 
@@ -223,8 +223,8 @@ See [`samples/DataAnalysisAgentSample`](samples/DataAnalysisAgentSample) and [`s
 
 Both samples use the [Chinook](https://github.com/lerocha/chinook-database) SQLite database as a demo dataset.
 
-[Demo](https://github.com/user-attachments/assets/51064246-5d84-4384-9c23-8e7ea68e9e26)
-<video src="https://github.com/user-attachments/assets/51064246-5d84-4384-9c23-8e7ea68e9e26"></video>
+[Demo](https://github.com/user-attachments/assets/30a27fde-fd6a-4c06-a0f8-25e89432c4b0)
+<video src="https://github.com/user-attachments/assets/30a27fde-fd6a-4c06-a0f8-25e89432c4b0"></video>
 
 ## Acknowledgements
 
