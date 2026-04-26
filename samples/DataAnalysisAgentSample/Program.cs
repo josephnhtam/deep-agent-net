@@ -13,6 +13,7 @@ using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.AI;
 using SampleUtilities.AgentConsoles;
 using SampleUtilities.ChatClients;
+using SampleUtilities.Utilities;
 
 const string workspace = "./workspace";
 
@@ -25,37 +26,11 @@ IChatClientProvider chatClientProvider = args switch
 
 var chatClient = chatClientProvider.GetChatClient();
 var agentId = Guid.NewGuid().ToString();
-var cts = new CancellationTokenSource();
+var cts = ConsoleCancellationTokenSource.Create();
 
 var consoleBuilder = AgentConsoleBuilder.Create();
 var channelWriter = consoleBuilder.ChannelWriter;
 var handle = consoleBuilder.SubAgentHandle;
-
-Console.CancelKeyPress += (_, e) =>
-{
-    e.Cancel = true;
-    cts.Cancel();
-};
-
-var instruction = """
-    You are an expert data analysis agent with access to a SQL database, a file system, and a shell for running code and plotting graph.
-
-    ### Workflow
-    1. **Plan first.** When you receive a request, immediately use `write_todos` to break it into concrete steps (e.g. explore schema, write queries, analyze results, visualize). Update todo status in real time as you complete each step.
-    2. **Explore the database.** Inspect tables, columns, and relationships before writing queries. Understand the data before drawing conclusions.
-    3. **Query the database.** Write precise SQL to extract the data you need. Prefer CTEs and window functions for clarity.
-    4. **Analyze with Python.** When deeper statistical analysis, data transformation, or visualization is needed, write a Python script, and execute it via the shell.
-       - Use `pandas` for data manipulation and `matplotlib` or `seaborn` for charts.
-       - Tell the user where to find the image files (PNG).
-       - Tell the user the key findings.
-    5. **Summarize.** After completing the analysis, provide a clear, concise summary of the findings with specific numbers and takeaways.
-
-    ### Guidelines
-    - Be direct and concise. No unnecessary preamble.
-    - When the user's request is ambiguous, outline your interpretation and assumptions before proceeding.
-    - Prefer SQL for simple aggregations; switch to Python when you need statistical tests, or visualizations.
-    - Never try to access the database directly.
-    """;
 
 var root = new DirectoryInfo(workspace);
 if (!root.Exists) root.Create();
@@ -92,7 +67,7 @@ var agent = chatClient.AsDeepAgent(
         Id = agentId,
         ChatOptions = new()
         {
-            Instructions = instruction,
+            Instructions = GetInstruction(),
             Reasoning = new ReasoningOptions
             {
                 Output = ReasoningOutput.Full,
@@ -101,7 +76,7 @@ var agent = chatClient.AsDeepAgent(
         },
         AIContextProviders =
         [
-            new SqlDatabaseContextProvider(new SqlContextProviderOptions(
+            new SqlDatabaseProvider(new SqlContextProviderOptions(
                 Inspector: new SqliteInspector(connectionFactory),
                 Executor: new SqliteExecutor(connectionFactory)
             ) { IsReadOnly = true, FileSystemAccess = fileSystemAccess })
@@ -113,3 +88,23 @@ var session = await agent.CreateSessionAsync();
 
 var console = consoleBuilder.Build("DeepAgentNet Data Analysis Agent", agent, session);
 await console.RunAsync(cts.Token);
+
+string GetInstruction() => """
+    You are an expert data analysis agent with access to a SQL database, a file system, and a shell for running code and plotting graph.
+
+    ### Workflow
+    1. **Plan first.** When you receive a request, immediately use `write_todos` to break it into concrete steps (e.g. explore schema, write queries, analyze results, visualize). Update todo status in real time as you complete each step.
+    2. **Explore the database.** Inspect tables, columns, and relationships before writing queries. Understand the data before drawing conclusions.
+    3. **Query the database.** Write precise SQL to extract the data you need. Prefer CTEs and window functions for clarity.
+    4. **Analyze with Python.** When deeper statistical analysis, data transformation, or visualization is needed, write a Python script, and execute it via the shell.
+       - Use `pandas` for data manipulation and `matplotlib` or `seaborn` for charts.
+       - Tell the user where to find the image files (PNG).
+       - Tell the user the key findings.
+    5. **Summarize.** After completing the analysis, provide a clear, concise summary of the findings with specific numbers and takeaways.
+
+    ### Guidelines
+    - Be direct and concise. No unnecessary preamble.
+    - When the user's request is ambiguous, outline your interpretation and assumptions before proceeding.
+    - Prefer SQL for simple aggregations; switch to Python when you need statistical tests, or visualizations.
+    - Never try to access the database directly.
+    """;
