@@ -5,12 +5,12 @@ using Microsoft.Extensions.AI;
 
 namespace DeepAgentNet.Tools.SqlDatabaseTools
 {
-    public class SqlDatabaseContextProvider : AIContextProvider
+    public class SqlDatabaseProvider : AIContextProvider
     {
         private readonly SqlContextProviderOptions _options;
         private readonly IReadOnlyList<AITool> _tools;
 
-        public SqlDatabaseContextProvider(SqlContextProviderOptions options)
+        public SqlDatabaseProvider(SqlContextProviderOptions options)
         {
             _options = options;
 
