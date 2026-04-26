@@ -215,13 +215,14 @@ See [`samples/CodingAgentSample`](samples/CodingAgentSample) for an interactive 
 
 ### Data Analysis Agent
 
-See [`samples/DataAnalysisAgentSample`](samples/DataAnalysisAgentSample) for an interactive data analysis agent that queries databases, analyzes data, and generates visualizations, featuring:
+See [`samples/DataAnalysisAgentSample`](samples/DataAnalysisAgentSample) and [`samples/AzureDynamicSessionsSample`](samples/AzureDynamicSessionsSample) for interactive data analysis agents that query databases, analyze data, and generate visualizations, featuring:
 
 - SQL database tools (schema inspection, query execution) via `SqlDatabaseContextProvider`
+- Sandboxed Python code interpreter (statistical analysis, chart generation) via `AzureDynamicSessionsProvider` using [Azure Dynamic Sessions](https://learn.microsoft.com/azure/container-apps/sessions)
 
-The sample uses the [Chinook](https://github.com/lerocha/chinook-database) SQLite database as a demo dataset.
+Both samples use the [Chinook](https://github.com/lerocha/chinook-database) SQLite database as a demo dataset.
 
-<video src="https://github.com/user-attachments/assets/09dd3067-4cea-411c-8332-8b32e39effbe"></video>
+<video src="https://github.com/user-attachments/assets/51064246-5d84-4384-9c23-8e7ea68e9e26"></video>
 
 ## Acknowledgements
 
