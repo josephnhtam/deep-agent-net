@@ -5,18 +5,18 @@
 [![NuGet](https://img.shields.io/nuget/v/DeepAgentNet.svg)](https://www.nuget.org/packages/DeepAgentNet)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-DeepAgentNet is an agent harness for .NET — a ready-to-run framework for building autonomous agents. Instead of wiring up prompts, tools, and context management yourself, you get a working agent out of the box and customize what you need.
+DeepAgentNet is an agent harness for .NET, a ready-to-run framework for building autonomous agents. Instead of wiring up prompts, tools, and context management yourself, you get a working agent out of the box and customize what you need.
 
 Built on [Microsoft Agent Framework](https://learn.microsoft.com/en-us/agent-framework/overview/?pivots=programming-language-csharp) and [Microsoft.Extensions.AI](https://learn.microsoft.com/en-us/dotnet/ai/ai-extensions).
 
 **What's included:**
 
-- **Planning** — `write_todos` for task breakdown and progress tracking
-- **Filesystem** — `read_file`, `write_file`, `edit_file`, `delete_file`, `ls`, `glob`, `grep` for sandboxed file access
-- **Shell** — `shell` for running commands with cross-platform shell detection
-- **Sub-agents** — `task` for delegating work with isolated context windows and session resume
-- **Context management** — chat history and compaction integrated at the chat client level for automatic context management during autonomous function calls
-- **Tool approval** — human-in-the-loop gates for sensitive operations
+- **Planning**: `write_todos` for task breakdown and progress tracking
+- **Filesystem**: `read_file`, `write_file`, `edit_file`, `delete_file`, `ls`, `glob`, `grep` for sandboxed file access
+- **Shell**: `shell` for running commands with cross-platform shell detection
+- **Sub-agents**: `task` for delegating work with isolated context windows and session resume
+- **Context management**: chat history and compaction integrated at the chat client level for automatic context management during autonomous function calls
+- **Tool approval**: human-in-the-loop gates for sensitive operations
 
 ## Installation
 
@@ -26,7 +26,10 @@ dotnet add package DeepAgentNet
 
 ## Quick Start
 
+OpenAI, Ollama, and other providers work too; see [`samples/SampleUtilities/ChatClients`](samples/SampleUtilities/ChatClients) for examples.
+
 ```csharp
+using Azure.AI.OpenAI;
 using DeepAgentNet.Agents;
 using DeepAgentNet.FileSystems;
 using DeepAgentNet.Shells;
@@ -35,26 +38,31 @@ using DeepAgentNet.SubAgents.Contracts;
 using DeepAgentNet.TodoLists;
 using Microsoft.Agents.AI;
 using Microsoft.Extensions.AI;
+using System.ClientModel;
 
-// 1. Create any IChatClient (Azure OpenAI, OpenAI, Ollama, etc.)
-IChatClient chatClient = /* your chat client */;
+var handle = new AutoApproveSubAgentHandle();
+var chatClient = new AzureOpenAIClient(
+    new Uri(Environment.GetEnvironmentVariable("AZURE_OPENAI_ENDPOINT")!),
+    new ApiKeyCredential(Environment.GetEnvironmentVariable("AZURE_OPENAI_API_KEY")!))
+    .GetChatClient(Environment.GetEnvironmentVariable("AZURE_OPENAI_DEPLOYMENT_NAME") ?? "gpt-5-mini")
+    .AsIChatClient();
 
-// 2. Implement ISubAgentHandle to control sub-agent behavior
-ISubAgentHandle subAgentHandle = new MySubAgentHandle();
+var workspace = new DirectoryInfo("./workspace");
+if (!workspace.Exists) workspace.Create();
 
-// 3. Configure the agent harness
 var options = DeepAgentOptionsBuilder.Create()
     .WithTodoList()
-    .WithFileSystem(new FileSystemProviderOptions(
-        new FileSystemAccess(new DirectoryInfo("./workspace"))))
-    .WithShell(new ShellProviderOptions(new LocalShellResolver()))
+    .WithFileSystem(new FileSystemProviderOptions(new FileSystemAccess(workspace)))
+    .WithShell(new ShellProviderOptions(new LocalShellResolver())
+    {
+        DefaultWorkingDirectory = workspace.FullName
+    })
     .WithSubAgent(new SubAgentProviderOptions
     {
-        GeneralPurposeAgent = new GeneralPurposeAgentOptions(subAgentHandle)
+        GeneralPurposeAgent = new GeneralPurposeAgentOptions(handle)
     })
     .Build();
 
-// 4. Build the agent
 var agent = chatClient.AsDeepAgent(
     agentOptions: new ChatClientAgentOptions
     {
@@ -65,35 +73,27 @@ var agent = chatClient.AsDeepAgent(
     },
     deepAgentOptions: options);
 
-// 5. Create a session and run
 var session = await agent.CreateSessionAsync();
 var inputs = new List<ChatMessage> { new(ChatRole.User, "Hello!") };
 
 while (true)
 {
     var updates = new List<AgentResponseUpdate>();
-
     await foreach (var update in agent.RunStreamingAsync(inputs, session))
     {
         Console.Write(update.Text);
         updates.Add(update);
     }
 
-    var response = updates.ToAgentResponse();
-    var approvals = response.Messages
-        .SelectMany(m => m.Contents)
-        .OfType<ToolApprovalRequestContent>()
-        .ToList();
-
-    // Handle tool approval requests from the master agent
+    var approvals = updates.ToAgentResponse().Messages
+        .SelectMany(m => m.Contents).OfType<ToolApprovalRequestContent>().ToList();
     if (approvals.Count > 0)
     {
         var results = new List<AIContent>();
         foreach (var approval in approvals)
         {
             Console.Write($"\nApprove {approval.ToolCall}? (y/n): ");
-            bool approved = Console.ReadLine()?.Trim().ToLower() == "y";
-            results.Add(approval.CreateResponse(approved));
+            results.Add(approval.CreateResponse(Console.ReadLine()?.Trim().ToLower() == "y"));
         }
         inputs = [new ChatMessage(ChatRole.Tool, results)];
         continue;
@@ -105,21 +105,19 @@ while (true)
     inputs = [new ChatMessage(ChatRole.User, userInput)];
 }
 
-// ISubAgentHandle implementation
-class MySubAgentHandle : ISubAgentHandle
+class AutoApproveSubAgentHandle : ISubAgentHandle
 {
-    // Automatically approve all sub-agent tool calls for demo
     public Task<ToolApprovalResponseContent> ApproveToolCallAsync(
-        string agentId, ToolApprovalRequestContent call, CancellationToken cancellationToken)
+        string agentId, ToolApprovalRequestContent call, CancellationToken ct)
         => Task.FromResult(call.CreateResponse(approved: true));
 
     public Task<object?> ProvideFunctionResultAsync(
-        string agentId, FunctionCallContent call, CancellationToken cancellationToken)
+        string agentId, FunctionCallContent call, CancellationToken ct)
         => Task.FromResult<object?>(null);
 }
 ```
 
-The agent can plan, read/write files, run commands, and delegate to sub-agents. Add tools, customize prompts, or swap models as needed.
+The agent can plan, read/write files, run commands, and delegate to sub-agents. For a full terminal UI with tool visualization, todo rendering, and reasoning output, see the [Coding Agent sample](#coding-agent) below. To require approval before sensitive tools run, see [Tool approval](#tool-approval).
 
 ## Customization
 
@@ -128,33 +126,37 @@ The agent can plan, read/write files, run commands, and delegate to sub-agents. 
 Register custom sub-agent types alongside the built-in general-purpose agent:
 
 ```csharp
-.WithSubAgent(new SubAgentProviderOptions
-{
-    GeneralPurposeAgent = new GeneralPurposeAgentOptions(handle)
+var options = DeepAgentOptionsBuilder.Create()
+    .WithSubAgent(new SubAgentProviderOptions
     {
-        Description = "General-purpose agent for multi-step tasks.",
-        SystemPrompt = "You are an agent completing a delegated task."
-    },
-    SubAgents =
-    [
-        new SubAgent(
-            Name: "researcher",
-            Description: "Specialized agent for research tasks.",
-            Handle: handle,
-            Factory: new MyResearchAgentFactory())
-    ]
-})
+        GeneralPurposeAgent = new GeneralPurposeAgentOptions(handle)
+        {
+            Description = "General-purpose agent for multi-step tasks.",
+            SystemPrompt = "You are an agent completing a delegated task."
+        },
+        SubAgents =
+        [
+            new SubAgent(
+                Name: "researcher",
+                Description: "Specialized agent for research tasks.",
+                Handle: handle,
+                Factory: new MyResearchAgentFactory())
+        ]
+    })
+    .Build();
 ```
 
-Implement `ISubAgentFactory` to control how sub-agents are created — provide a custom `IChatClient`, configure agent options, or decorate the agent after construction.
+Implement `ISubAgentFactory` to control how sub-agents are created: provide a custom `IChatClient`, configure agent options, or decorate the agent after construction.
 
 ### Filesystem
 
 `FileSystemAccess` provides a sandboxed filesystem rooted at a directory of your choice. By default, all paths are restricted to that root.
 
 ```csharp
-.WithFileSystem(new FileSystemProviderOptions(
-    new FileSystemAccess(new DirectoryInfo("/my/project"))))
+var options = DeepAgentOptionsBuilder.Create()
+    .WithFileSystem(new FileSystemProviderOptions(
+        new FileSystemAccess(new DirectoryInfo("/my/project"))))
+    .Build();
 ```
 
 ### Compaction
@@ -164,9 +166,11 @@ Plug in a `CompactionStrategy` to manage context during long-running autonomous 
 ```csharp
 using Microsoft.Agents.AI.Compaction;
 
-.WithCompaction(new CompactionProviderOptions(
-    new PipelineCompactionStrategy(
-        [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))])))
+var options = DeepAgentOptionsBuilder.Create()
+    .WithCompaction(new CompactionProviderOptions(
+        new PipelineCompactionStrategy(
+            [new SummarizationCompactionStrategy(chatClient, CompactionTriggers.TokensExceed(200_000))])))
+    .Build();
 ```
 
 ### Extending the agent
@@ -192,10 +196,12 @@ var agent = chatClient.AsDeepAgent(
 Built-in tools can require human approval before execution. Configure per-tool policies via `ToolApprovalPolicy`:
 
 ```csharp
-.WithShell(new ShellProviderOptions(new LocalShellResolver())
-{
-    ToolOptions = new ToolOptions { ApprovalPolicy = ToolApprovalPolicy.Required }
-})
+var options = DeepAgentOptionsBuilder.Create()
+    .WithShell(new ShellProviderOptions(new LocalShellResolver())
+    {
+        ToolOptions = new ToolOptions { ApprovalPolicy = ToolApprovalPolicy.Required }
+    })
+    .Build();
 ```
 
 ## Sample
@@ -228,7 +234,7 @@ Both samples use the [Chinook](https://github.com/lerocha/chinook-database) SQLi
 
 ## Acknowledgements
 
-This project is inspired by [deepagents](https://github.com/langchain-ai/deepagents) by LangChain — an agent harness providing planning, filesystem, shell, and sub-agent tools out of the box.
+This project is inspired by [deepagents](https://github.com/langchain-ai/deepagents) by LangChain, an agent harness providing planning, filesystem, shell, and sub-agent tools out of the box.
 
 ## License
 
