@@ -1,10 +1,9 @@
-using DeepAgentNet.Compactions;
 using Microsoft.Agents.AI;
 using Microsoft.Agents.AI.Compaction;
 using Microsoft.Extensions.AI;
 using Microsoft.Extensions.Logging;
 
-namespace DeepAgentNet.ChatHistories.Internal
+namespace DeepAgentNet.Compactions.Internal
 {
     internal class CompactableChatHistoryProvider : ChatHistoryProvider
     {
@@ -52,10 +51,10 @@ namespace DeepAgentNet.ChatHistories.Internal
             }
 
             Dictionary<string, int> messageIndexes = originalMessages
-                .Select((m, i) => (Message: m, Index: i))
-                .Where(x => x.Message.AdditionalProperties?.ContainsKey(KeyCompactionMessageId) == true)
-                .ToDictionary(x => x.Message.AdditionalProperties![KeyCompactionMessageId]!.ToString()!,
-                    x => x.Index);
+                .Select((m, i) => (Index: i, Key: m.AdditionalProperties?.GetValueOrDefault(KeyCompactionMessageId, null) as string))
+                .Where(x => !string.IsNullOrEmpty(x.Key))
+                .GroupBy(x => x.Key)
+                .ToDictionary(x => x.Key!, x => x.Last().Index);
 
             List<ChatMessage> compactedMessages =
             [

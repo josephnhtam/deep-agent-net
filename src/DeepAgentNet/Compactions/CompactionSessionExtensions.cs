@@ -1,4 +1,4 @@
-using DeepAgentNet.ChatHistories.Internal;
+using DeepAgentNet.Compactions.Internal;
 using Microsoft.Agents.AI;
 
 namespace DeepAgentNet.Compactions
