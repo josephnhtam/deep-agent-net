@@ -14,4 +14,8 @@
         <PackageReference Include="Microsoft.Extensions.FileSystemGlobbing"/>
     </ItemGroup>
 
+    <ItemGroup>
+        <InternalsVisibleTo Include="DeepAgentNet.Tests" />
+    </ItemGroup>
+
 </Project>
